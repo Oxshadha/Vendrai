@@ -25,10 +25,11 @@ export function LoginScreen({ onSubmit, error, pending }: LoginScreenProps) {
   return (
     <main className="grid min-h-screen place-items-center bg-[var(--color-bg)] p-6">
       <Card padding="lg" className="w-full max-w-sm">
-        <div className="mb-6 flex flex-col items-center gap-3 text-center">
-          <Image src="/Full logo.svg" alt="" width={40} height={40} className="rounded-xl" />
+        <div className="mb-7 flex flex-col items-center gap-5 text-center">
+          <Image src="/vendrai-logo.avif" alt="Vendrai" width={991} height={162} priority className="h-7 w-auto" />
           <div>
-            <h1 className="font-display text-xl font-bold">Sign in to Vendrai</h1>
+            {/* Heading drops the brand name: the wordmark above already says it. */}
+            <h1 className="font-display text-xl font-bold">Sign in</h1>
             <p className="mt-1 text-sm text-[var(--color-muted)]">
               Use your workspace credentials to continue.
             </p>

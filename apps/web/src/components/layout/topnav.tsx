@@ -112,8 +112,22 @@ export function TopNav() {
           href="/"
           className="flex shrink-0 items-center gap-2 rounded-full transition-opacity duration-200 hover:opacity-80"
         >
-          <Image src="/Full logo.svg" alt="" width={32} height={32} className="h-8 w-8 rounded-lg" priority />
-          <span className="hidden font-display text-lg font-bold text-[var(--color-ink)] sm:inline">Vendrai</span>
+          {/*
+            The wordmark already contains "Vendrai", so the text span that used
+            to sit beside the old square icon is gone -- keeping both would read
+            the brand name twice. That also moves the accessible name onto the
+            image, hence a real alt rather than the previous decorative "".
+            Intrinsic size is the asset's own 991x162; `w-auto` alongside a CSS
+            height keeps next/image from warning about a half-overridden ratio.
+          */}
+          <Image
+            src="/vendrai-logo.avif"
+            alt="Vendrai"
+            width={991}
+            height={162}
+            priority
+            className="h-6 w-auto"
+          />
         </Link>
 
         <nav
