@@ -85,7 +85,18 @@ export function CaseQueuePanel({
   }, [items, search]);
 
   return (
-    <Card {...assistance} padding="none" className="flex max-h-[46rem] flex-col overflow-hidden">
+    /*
+     * Sticks below the floating nav and is sized against the viewport rather
+     * than a fixed height, so the list always ends on screen instead of being
+     * cut off, and stays in reach while the form beside it scrolls.
+     */
+    <Card
+      {...assistance}
+      padding="none"
+      // `self-start` matters: a grid item stretches to the row height by
+      // default, which leaves sticky with nothing to move within.
+      className="flex max-h-[calc(100vh-7rem)] flex-col overflow-hidden xl:sticky xl:top-24 xl:self-start"
+    >
       <div className="shrink-0 border-b border-[var(--color-border)] p-5">
         <h2 className="font-display text-lg font-bold">{title}</h2>
         <p className="mt-1 text-sm text-[var(--color-muted)]">{description}</p>
