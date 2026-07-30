@@ -7,6 +7,7 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     DateTime,
+    Float,
     ForeignKey,
     Index,
     Integer,
@@ -450,6 +451,32 @@ class EvaluationResult(Base):
     passed: Mapped[bool] = mapped_column(Boolean)
     evaluator_type: Mapped[str] = mapped_column(String(50))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class PredictionBaseline(Base, TimestampMixin):
+    """Observed duration distribution for one (case_type, status) bucket.
+
+    Pre-aggregated so forecasting an open case is arithmetic at read time
+    instead of replaying every historical case's events per request.
+    """
+
+    __tablename__ = "prediction_baselines"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "case_type", "status", name="uq_prediction_baselines_bucket"),
+    )
+    prediction_baseline_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.tenant_id"), index=True)
+    case_type: Mapped[str] = mapped_column(String(50))
+    status: Mapped[str] = mapped_column(String(50))
+    p50_hours: Mapped[float | None] = mapped_column(Float, nullable=True)
+    p90_hours: Mapped[float | None] = mapped_column(Float, nullable=True)
+    sample_size: Mapped[int] = mapped_column(Integer, default=0)
+    #: STATISTICAL | MODEL | INSUFFICIENT -- see domain/prediction.py
+    method: Mapped[str] = mapped_column(String(20), default="INSUFFICIENT")
+    model_version_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("model_versions.model_version_id"), nullable=True
+    )
+    computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class EvidenceItem(Base):

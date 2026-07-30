@@ -118,6 +118,9 @@ class Settings(BaseSettings):
     SANCTIONS_EU_URL: str = ""
     ALERT_EVALUATION_INTERVAL_SECONDS: int = 900
     ALERT_TENANT_IDS: str = ""
+    # Duration baselines shift slowly, so hourly is ample and keeps the
+    # recompute off the request path entirely.
+    PREDICTION_REFRESH_INTERVAL_SECONDS: int = 3600
 
     # Reference data, policies, and case documents the bootstrap loads. Mounted
     # read-only rather than baked into the image: it is several hundred
