@@ -6,9 +6,15 @@ import { ArrowRight, ShieldCheck } from "lucide-react";
 import { api } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useAssistanceTarget } from "@/components/assistance-registry";
 
 export default function ApprovalsDashboard() {
   const tasks = useQuery({ queryKey: ["approvals"], queryFn: api.listApprovals });
+  const queueAssistance = useAssistanceTarget({
+    id: "approvals.queue",
+    title: "Approval queue",
+    description: "Decisions waiting on a person, version-checked and bound to the evidence that produced them.",
+  });
   return (
     <div className="min-h-full p-6 lg:p-12">
       <header className="mb-10">
@@ -17,7 +23,7 @@ export default function ApprovalsDashboard() {
         <p className="mt-2 text-[var(--color-muted)]">Decisions are version-checked, evidence-bound and protected by segregation of duties.</p>
       </header>
       {tasks.isError && <p role="alert" className="mb-6 rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-900">Unable to load approvals: {tasks.error.message}</p>}
-      <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
+      <div {...queueAssistance} className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
         {tasks.isLoading && <p aria-live="polite">Loading approval tasks…</p>}
         {!tasks.isLoading && (tasks.data ?? []).length === 0 && (
           <Card className="lg:col-span-2 xl:col-span-3">

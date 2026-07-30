@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-import { Bot, ChevronLeft, ChevronRight, CircleHelp, Sparkles, X } from "lucide-react";
+import { Bot, ChevronRight, CircleHelp, Sparkles, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ChatComposer, ChatThread } from "@/components/copilot-chat";
+import { TourCallout } from "@/components/tour-callout";
+import { TourPicker } from "@/components/tour-picker";
 import { useCopilotContext } from "@/components/copilot-provider";
 
 const SUGGESTIONS = [
@@ -28,11 +30,16 @@ export function ApplicationCopilot() {
     loading,
     ask,
     tour,
-    tourTarget,
+    tourElement,
+    tourBusy,
+    startTour,
     moveTour,
     endTour,
+    tourPickerOpen,
+    setTourPickerOpen,
     scrollAnchor,
   } = useCopilotContext();
+  const step = tour?.steps[tour.index];
 
   // Escape closes: this is a modal dialog, so keyboard users need an exit that
   // does not depend on locating the close button.
@@ -131,51 +138,22 @@ export function ApplicationCopilot() {
         </section>
       )}
 
-      {tour && tourTarget && (
-        <aside
-          role="dialog"
-          aria-label="Guided application tour"
-          className="fixed bottom-4 left-1/2 z-[70] w-[min(94vw,560px)] -translate-x-1/2 rounded-2xl bg-[var(--color-ink)] p-5 text-white shadow-[var(--shadow-xl)]"
-        >
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[11px] uppercase tracking-[0.15em] text-[var(--color-accent-secondary)]">
-              Guided workflow
-            </span>
-            <span className="text-[11px] text-white/50">
-              step {tour.index + 1} of {tour.targetIds.length}
-            </span>
-          </div>
-          <p className="mt-2 font-bold">{tourTarget.title}</p>
-          <p className="mt-1 text-sm leading-relaxed text-white/70">{tourTarget.description}</p>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <button
-              type="button"
-              className="rounded-xl px-3 py-2 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-              onClick={endTour}
-            >
-              Skip tour
-            </button>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={tour.index === 0}
-                className="inline-flex items-center gap-1 rounded-xl px-3 py-2 text-sm transition-colors hover:bg-white/10 disabled:opacity-40"
-                onClick={() => moveTour(tour.index - 1)}
-              >
-                <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-                Back
-              </button>
-              <button
-                type="button"
-                className="inline-flex items-center gap-1 rounded-xl bg-gradient-to-r from-[var(--color-accent-dark)] to-[var(--color-accent)] px-4 py-2 text-sm font-bold transition-all duration-200 hover:brightness-110"
-                onClick={() => (tour.index === tour.targetIds.length - 1 ? endTour() : moveTour(tour.index + 1))}
-              >
-                {tour.index === tour.targetIds.length - 1 ? "Finish" : "Next"}
-                <ChevronRight className="h-4 w-4" aria-hidden="true" />
-              </button>
-            </div>
-          </div>
-        </aside>
+      {tourPickerOpen && (
+        <TourPicker onSelect={startTour} onClose={() => setTourPickerOpen(false)} />
+      )}
+
+      {tour && step && (
+        <TourCallout
+          target={tourElement}
+          title={step.title}
+          body={step.body}
+          index={tour.index}
+          total={tour.steps.length}
+          busy={tourBusy}
+          onBack={() => moveTour(tour.index - 1)}
+          onNext={() => moveTour(tour.index + 1)}
+          onSkip={endTour}
+        />
       )}
     </>
   );

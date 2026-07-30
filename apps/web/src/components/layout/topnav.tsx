@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import {
   Activity,
   ClipboardList,
+  Compass,
   FileText,
   LayoutDashboard,
   LogOut,
@@ -18,6 +19,8 @@ import { useAuth } from "@/app/providers";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Avatar } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/notification-bell";
+import { useAssistanceTarget } from "@/components/assistance-registry";
+import { useCopilotContext } from "@/components/copilot-provider";
 
 const NAV_ITEMS = [
   { value: "/", label: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -30,11 +33,17 @@ const NAV_ITEMS = [
 
 function AvatarMenu() {
   const { roles, displayName, logout } = useAuth();
+  const { setTourPickerOpen } = useCopilotContext();
   const [open, setOpen] = useState(false);
   const role = [...roles][0] ?? "user";
+  const assistance = useAssistanceTarget({
+    id: "nav.account",
+    title: "Account and role",
+    description: "Your signed-in identity and role, plus the guided tours and sign out.",
+  });
 
   return (
-    <div className="relative">
+    <div className="relative" {...assistance}>
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -63,6 +72,18 @@ function AvatarMenu() {
               <p className="truncate text-xs capitalize text-[var(--color-muted)]">{role.replaceAll("_", " ")}</p>
             </div>
             <div className="my-1 h-px bg-[var(--color-border)]" />
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                setTourPickerOpen(true);
+              }}
+              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-[var(--color-ink)] hover:bg-[var(--color-surface-muted)]"
+            >
+              <Compass className="h-4 w-4" aria-hidden="true" />
+              Take a tour
+            </button>
             <Link
               href="/admin"
               role="menuitem"
@@ -94,6 +115,11 @@ function AvatarMenu() {
 export function TopNav() {
   const pathname = usePathname();
   const { roles } = useAuth();
+  const navAssistance = useAssistanceTarget<HTMLElement>({
+    id: "nav.primary",
+    title: "Primary navigation",
+    description: "Every area of the product. Items are filtered by the roles on your token.",
+  });
 
   const items = NAV_ITEMS.filter((item) => !item.roles || item.roles.some((role) => roles.has(role)));
   const active = items.find((item) => item.href === "/" ? pathname === "/" : pathname.startsWith(item.href))?.value ?? "/";
@@ -131,6 +157,7 @@ export function TopNav() {
         </Link>
 
         <nav
+          {...navAssistance}
           aria-label="Primary"
           className="flex min-w-0 flex-1 gap-2 overflow-x-auto [scrollbar-width:none] md:flex-none md:overflow-visible [&::-webkit-scrollbar]:hidden"
         >

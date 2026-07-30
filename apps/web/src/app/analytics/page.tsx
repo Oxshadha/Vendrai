@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useAssistanceTarget } from "@/components/assistance-registry";
 
 const metricIcons: Record<MetricKey, typeof Gauge> = {
   invoice_stp_rate: Gauge,
@@ -57,6 +58,21 @@ function changeDisplay(metric: MetricValue): string {
 export default function AnalyticsPage() {
   const queryClient = useQueryClient();
   const [question, setQuestion] = useState("");
+  const metricsAssistance = useAssistanceTarget<HTMLElement>({
+    id: "analytics.metrics",
+    title: "Governed metrics",
+    description: "Every figure is derived from immutable workflow events, so it reconciles against the audit trail.",
+  });
+  const trendsAssistance = useAssistanceTarget<HTMLElement>({
+    id: "analytics.trends",
+    title: "Trends and exception mix",
+    description: "Straight-through processing over time and the distribution of deterministic exception records.",
+  });
+  const riskAssistance = useAssistanceTarget<HTMLElement>({
+    id: "analytics.risk",
+    title: "Risk findings and alerts",
+    description: "Active controls can hold work; models in shadow mode can only recommend a review.",
+  });
   const summary = useQuery({
     queryKey: ["analytics", "summary"],
     queryFn: api.getAnalyticsSummary,
@@ -140,7 +156,7 @@ export default function AnalyticsPage() {
         </p>
       )}
 
-      <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      <section {...metricsAssistance} className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
         {(summary.data?.metrics ?? []).map((metric) => {
           const Icon = metricIcons[metric.key];
           return (
@@ -180,7 +196,7 @@ export default function AnalyticsPage() {
         })}
       </section>
 
-      <section className="mt-8 grid gap-8 xl:grid-cols-2">
+      <section {...trendsAssistance} className="mt-8 grid gap-8 xl:grid-cols-2">
         <Card>
           <h2 className="font-display text-xl font-bold">Invoice STP trend</h2>
           <p className="mt-1 text-sm text-[var(--color-muted)]">
@@ -231,7 +247,7 @@ export default function AnalyticsPage() {
         </Card>
       </section>
 
-      <section className="mt-8 grid gap-8 xl:grid-cols-[1.2fr_1fr]">
+      <section {...riskAssistance} className="mt-8 grid gap-8 xl:grid-cols-[1.2fr_1fr]">
         <Card>
           <div className="mb-5 flex items-center gap-3">
             <ShieldAlert className="h-6 w-6 text-[var(--color-accent)]" />

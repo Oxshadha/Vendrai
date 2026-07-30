@@ -29,6 +29,15 @@ export interface AssistanceTargetContext {
   description: string;
 }
 
+export interface SpotlightOptions {
+  /**
+   * How long the highlight survives, or `null` to persist until cleared.
+   * Guided tours pass `null`: the default timeout would erase the highlight
+   * while the user is still reading that step.
+   */
+  autoClearMs?: number | null;
+}
+
 interface AssistanceRegistryValue {
   register: (
     definition: AssistanceTargetDefinition,
@@ -36,10 +45,19 @@ interface AssistanceRegistryValue {
   ) => () => void;
   list: (tour?: string) => RegisteredAssistanceTarget[];
   get: (id: string) => RegisteredAssistanceTarget | undefined;
-  spotlight: (id: string) => boolean;
+  /**
+   * Resolve once `id` is mounted and visible, or `null` on timeout. Lets a
+   * tour step navigate to another route and wait for its target to appear,
+   * which `get` cannot do because it only sees what is already rendered.
+   */
+  waitFor: (id: string, timeoutMs?: number) => Promise<RegisteredAssistanceTarget | null>;
+  spotlight: (id: string, options?: SpotlightOptions) => boolean;
   clearSpotlight: () => void;
   context: () => AssistanceTargetContext[];
 }
+
+const DEFAULT_SPOTLIGHT_MS = 10_000;
+const DEFAULT_WAIT_MS = 4_000;
 
 const AssistanceRegistryContext =
   createContext<AssistanceRegistryValue | null>(null);
@@ -65,6 +83,8 @@ export function AssistanceProvider({
     previousTabIndex: string | null;
   } | null>(null);
   const spotlightTimer = useRef<number | null>(null);
+  /** Notified on every registration so `waitFor` can settle without polling. */
+  const listeners = useRef(new Set<(id: string) => void>());
 
   const clearSpotlight = useCallback(() => {
     if (spotlightTimer.current !== null) {
@@ -92,6 +112,7 @@ export function AssistanceProvider({
     ) => {
       const registered = { ...definition, element };
       targets.current.set(definition.id, registered);
+      for (const listener of listeners.current) listener(definition.id);
       return () => {
         if (targets.current.get(definition.id)?.element === element) {
           targets.current.delete(definition.id);
@@ -129,8 +150,38 @@ export function AssistanceProvider({
     [],
   );
 
+  const waitFor = useCallback(
+    (id: string, timeoutMs: number = DEFAULT_WAIT_MS) =>
+      new Promise<RegisteredAssistanceTarget | null>((resolve) => {
+        const existing = targets.current.get(id);
+        if (existing && isVisible(existing)) {
+          resolve(existing);
+          return;
+        }
+        let timer = 0;
+        const listener = (registeredId: string) => {
+          if (registeredId !== id) return;
+          const target = targets.current.get(id);
+          // Registration fires from a ref callback, so layout has not settled
+          // yet -- defer one frame before testing visibility.
+          window.requestAnimationFrame(() => {
+            if (!target || !isVisible(target)) return;
+            settle(target);
+          });
+        };
+        const settle = (target: RegisteredAssistanceTarget | null) => {
+          listeners.current.delete(listener);
+          window.clearTimeout(timer);
+          resolve(target);
+        };
+        listeners.current.add(listener);
+        timer = window.setTimeout(() => settle(null), timeoutMs);
+      }),
+    [],
+  );
+
   const spotlight = useCallback(
-    (id: string) => {
+    (id: string, options?: SpotlightOptions) => {
       const target = targets.current.get(id);
       if (!target || !isVisible(target)) return false;
       clearSpotlight();
@@ -149,10 +200,16 @@ export function AssistanceProvider({
         element: target.element,
         previousTabIndex,
       };
-      spotlightTimer.current = window.setTimeout(
-        clearSpotlight,
-        10_000,
-      );
+      const autoClearMs =
+        options?.autoClearMs === undefined
+          ? DEFAULT_SPOTLIGHT_MS
+          : options.autoClearMs;
+      if (autoClearMs !== null) {
+        spotlightTimer.current = window.setTimeout(
+          clearSpotlight,
+          autoClearMs,
+        );
+      }
       return true;
     },
     [clearSpotlight],
@@ -175,6 +232,7 @@ export function AssistanceProvider({
       register,
       list,
       get,
+      waitFor,
       spotlight,
       clearSpotlight,
       context,
@@ -186,6 +244,7 @@ export function AssistanceProvider({
       list,
       register,
       spotlight,
+      waitFor,
     ],
   );
 
