@@ -51,6 +51,8 @@ interface CopilotContextValue {
   open: boolean;
   setOpen: (open: boolean) => void;
   openCopilot: () => void;
+  /** User-initiated close: hides the panel *and* clears the conversation. */
+  closeCopilot: () => void;
   messages: CopilotMessage[];
   question: string;
   setQuestion: (question: string) => void;
@@ -136,6 +138,35 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
     setSession(created);
     setMessages([]);
     return created;
+  }
+
+  /**
+   * Drop the conversation so the next open starts clean.
+   *
+   * The session id lives in sessionStorage and `ensureSession` replays its
+   * history on open, so forgetting the id is what actually clears the thread;
+   * there is no server-side close endpoint. The docked dashboard card shares
+   * this state by design, so it empties too.
+   */
+  function resetConversation() {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    }
+    setSession(null);
+    setMessages([]);
+    setQuestion("");
+    setError("");
+    setFeedbackSent(new Set());
+  }
+
+  /**
+   * Deliberately distinct from `setOpen(false)`: the panel also hides itself to
+   * reveal a spotlight or tour, and wiping the conversation there would destroy
+   * the very thread whose action the user just clicked.
+   */
+  function closeCopilot() {
+    setOpen(false);
+    resetConversation();
   }
 
   async function openCopilot() {
@@ -343,6 +374,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
     open,
     setOpen,
     openCopilot: () => void openCopilot(),
+    closeCopilot,
     messages,
     question,
     setQuestion,

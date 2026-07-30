@@ -24,8 +24,8 @@ const SUGGESTIONS = [
 export function ApplicationCopilot() {
   const {
     open,
-    setOpen,
     openCopilot,
+    closeCopilot,
     messages,
     loading,
     ask,
@@ -42,15 +42,15 @@ export function ApplicationCopilot() {
   const step = tour?.steps[tour.index];
 
   // Escape closes: this is a modal dialog, so keyboard users need an exit that
-  // does not depend on locating the close button.
+  // does not depend on locating the close button. Both exits clear the thread.
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") closeCopilot();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, setOpen]);
+  }, [open, closeCopilot]);
 
   return (
     <>
@@ -89,7 +89,7 @@ export function ApplicationCopilot() {
             </div>
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={closeCopilot}
               className="shrink-0 rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
               aria-label="Close copilot"
             >
