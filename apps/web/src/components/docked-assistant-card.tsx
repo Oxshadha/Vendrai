@@ -96,7 +96,7 @@ export function DockedAssistantCard() {
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
           placeholder="Ask something…"
-          className="h-11 flex-1 rounded-full border border-white/60 bg-white/80 px-4 text-sm outline-none placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/25"
+          className="h-11 flex-1 rounded-full border border-white/60 bg-white/80 px-4 text-sm outline-none placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)]"
         />
         <button
           type="submit"

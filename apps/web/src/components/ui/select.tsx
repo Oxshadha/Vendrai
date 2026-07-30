@@ -15,7 +15,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     <div className="relative">
       <select
         ref={ref}
-        className={`h-11 w-full appearance-none rounded-xl border border-[var(--color-border)] bg-white pl-4 pr-10 text-sm text-[var(--color-ink)] shadow-[var(--shadow-xs)] transition-colors duration-150 focus:outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/25 disabled:cursor-not-allowed disabled:opacity-50 ${className ?? ""}`}
+        className={`h-11 w-full appearance-none rounded-xl border border-[var(--color-border)] bg-white pl-4 pr-10 text-sm text-[var(--color-ink)] shadow-[var(--shadow-xs)] transition-colors duration-150 focus:outline-none focus:border-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50 ${className ?? ""}`}
         {...props}
       >
         {children}

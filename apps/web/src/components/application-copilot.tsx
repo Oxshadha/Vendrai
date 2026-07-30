@@ -222,7 +222,7 @@ export function ApplicationCopilot() {
                 rows={2}
                 maxLength={1200}
                 placeholder="Ask what happened, why, or how to use this screen…"
-                className="min-h-12 flex-1 resize-none rounded-xl border border-[var(--color-border)] bg-white p-3 text-sm shadow-[var(--shadow-xs)] outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/25"
+                className="min-h-12 flex-1 resize-none rounded-xl border border-[var(--color-border)] bg-white p-3 text-sm shadow-[var(--shadow-xs)] outline-none focus:border-[var(--color-accent)]"
               />
               <Button
                 type="submit"
