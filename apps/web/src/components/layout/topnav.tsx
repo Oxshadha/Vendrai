@@ -33,7 +33,7 @@ const NAV_ITEMS = [
 
 function AvatarMenu() {
   const { roles, displayName, logout } = useAuth();
-  const { setTourPickerOpen } = useCopilotContext();
+  const { openTours } = useCopilotContext();
   const [open, setOpen] = useState(false);
   const role = [...roles][0] ?? "user";
   const assistance = useAssistanceTarget({
@@ -77,7 +77,7 @@ function AvatarMenu() {
               role="menuitem"
               onClick={() => {
                 setOpen(false);
-                setTourPickerOpen(true);
+                openTours();
               }}
               className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-[var(--color-ink)] hover:bg-[var(--color-surface-muted)]"
             >

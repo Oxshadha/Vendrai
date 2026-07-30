@@ -1,7 +1,19 @@
 "use client";
 
 import { useEffect, useRef, type RefObject } from "react";
-import { Bot, ChevronRight, MapPin, RotateCcw, ShieldCheck, ThumbsDown, ThumbsUp } from "lucide-react";
+import {
+  BookOpen,
+  Bot,
+  ChevronRight,
+  Compass,
+  Crosshair,
+  ExternalLink,
+  MapPin,
+  RotateCcw,
+  ShieldCheck,
+  ThumbsDown,
+  ThumbsUp,
+} from "lucide-react";
 
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { useCopilotContext } from "@/components/copilot-provider";
@@ -14,6 +26,17 @@ import { useCopilotContext } from "@/components/copilot-provider";
  */
 
 const COMPOSER_MAX_HEIGHT = 128;
+
+/** Blank line or more: answers arrive as prose, so render paragraphs as such. */
+const PARAGRAPH_BREAK = /\n{2,}/;
+
+/** Signals what a suggested action will actually do before it is clicked. */
+const ACTION_ICON: Record<string, typeof MapPin> = {
+  SPOTLIGHT: Crosshair,
+  NAVIGATE: ExternalLink,
+  START_TOUR: Compass,
+  OPEN_PANEL: MapPin,
+};
 
 /** Activity indicator that signals work without implying measurable progress. */
 export function TypingDots() {
@@ -76,33 +99,56 @@ export function ChatThread({ anchorRef, limit = 20, className }: ChatThreadProps
           <article key={message.copilot_message_id} className="flex gap-2.5">
             <AssistantAvatar />
             <div className="min-w-0 flex-1 rounded-2xl rounded-tl-md border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5 shadow-[var(--shadow-xs)]">
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--color-ink)]">
-                {message.content}
-              </p>
+              <div className="space-y-2.5 text-[13.5px] leading-[1.65] text-[var(--color-ink)]">
+                {message.content
+                  .split(PARAGRAPH_BREAK)
+                  .map((para) => para.trim())
+                  .filter(Boolean)
+                  .map((para, i) => (
+                    <p key={i} className="whitespace-pre-wrap">
+                      {para}
+                    </p>
+                  ))}
+              </div>
 
               {message.citations.length > 0 && (
-                <p className="mt-2.5 text-xs leading-relaxed text-[var(--color-muted)]">
-                  <span className="font-medium">Sources:</span>{" "}
-                  {message.citations.map((citation) => citation.title).join(" · ")}
-                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] font-medium text-[var(--color-muted)]">Sources</span>
+                  {message.citations.map((citation, i) => (
+                    <span
+                      key={`${citation.title}-${i}`}
+                      className="inline-flex items-center gap-1 rounded-full bg-[var(--color-surface-muted)] px-2 py-0.5 text-[11px] text-[var(--color-muted)]"
+                    >
+                      <BookOpen className="h-3 w-3 shrink-0" aria-hidden="true" />
+                      {citation.title}
+                    </span>
+                  ))}
+                </div>
               )}
 
               {message.ui_actions.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  {message.ui_actions.map((action) => (
-                    <button
-                      key={`${action.action_type}-${action.target}`}
-                      type="button"
-                      className="flex w-full items-center justify-between gap-2 rounded-xl border border-[var(--color-accent)]/25 bg-[var(--color-accent)]/5 px-3 py-2 text-left text-xs font-bold text-[var(--color-accent-dark)] transition-all duration-200 hover:border-[var(--color-accent)]/50 hover:bg-[var(--color-accent)]/10"
-                      onClick={() => runAction(action)}
-                    >
-                      <span className="flex items-center gap-2">
-                        <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                        {action.label}
-                      </span>
-                      <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
-                    </button>
-                  ))}
+                <div className="mt-3 space-y-1.5">
+                  <p className="text-[11px] font-medium text-[var(--color-muted)]">Take me there</p>
+                  {message.ui_actions.map((action) => {
+                    const Icon = ACTION_ICON[action.action_type] ?? MapPin;
+                    return (
+                      <button
+                        key={`${action.action_type}-${action.target}`}
+                        type="button"
+                        className="group flex w-full items-center justify-between gap-2 rounded-xl border border-[var(--color-accent)]/25 bg-[var(--color-accent)]/5 px-3 py-2.5 text-left text-xs font-bold text-[var(--color-accent-dark)] transition-all duration-200 hover:border-[var(--color-accent)]/50 hover:bg-[var(--color-accent)]/10"
+                        onClick={() => runAction(action)}
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          <span className="truncate">{action.label}</span>
+                        </span>
+                        <ChevronRight
+                          className="h-4 w-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5"
+                          aria-hidden="true"
+                        />
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 
