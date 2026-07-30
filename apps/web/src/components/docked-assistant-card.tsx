@@ -3,6 +3,7 @@
 import { LoaderCircle, MapPin, MessagesSquare, Search, ShieldAlert, Sparkles } from "lucide-react";
 import { useAuth } from "@/app/providers";
 import { Card } from "@/components/ui/card";
+import { MaterialIcon } from "@/components/ui/material-icon";
 import { useCopilotContext } from "@/components/copilot-provider";
 
 const QUICK_ACTIONS = [
@@ -47,7 +48,10 @@ export function DockedAssistantCard() {
 
   return (
     <Card tint="accent">
-      <p className="font-display text-lg font-bold text-[var(--color-ink)]">Hi, {displayName} 👋</p>
+      <p className="flex items-center gap-2 font-display text-lg font-bold text-[var(--color-ink)]">
+        Hi, {displayName}
+        <MaterialIcon name="waving_hand" className="h-4 w-4 shrink-0 text-[var(--color-accent)]" />
+      </p>
       <p className="mt-1 text-sm text-[var(--color-muted)]">How can I help you?</p>
 
       <div className="mt-5 grid grid-cols-2 gap-3">
