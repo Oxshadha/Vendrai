@@ -6,6 +6,7 @@ import { Bell } from "lucide-react";
 import { api } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useAssistanceTarget } from "@/components/assistance-registry";
 
 /**
  * Extracted from the dashboard so it can live in the global top nav instead
@@ -14,6 +15,11 @@ import { Button } from "@/components/ui/button";
  */
 export function NotificationBell() {
   const queryClient = useQueryClient();
+  const assistance = useAssistanceTarget({
+    id: "nav.notifications",
+    title: "Notifications",
+    description: "SLA breaches, clarification requests and approval hand-offs surface here rather than by email.",
+  });
   const [showNotifications, setShowNotifications] = useState(false);
   const notifications = useQuery({ queryKey: ["notifications"], queryFn: api.listNotifications });
   const markRead = useMutation({
@@ -32,7 +38,7 @@ export function NotificationBell() {
   }, []);
 
   return (
-    <div className="relative" data-panel-id="notifications">
+    <div className="relative" data-panel-id="notifications" {...assistance}>
       <Button
         type="button"
         variant="icon"

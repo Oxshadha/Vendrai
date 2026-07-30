@@ -33,24 +33,29 @@ for (const role of ROLES) {
   setup(`authenticate as ${role}`, async ({ page }) => {
     await page.goto("/");
 
-    // The app redirects to Keycloak when unauthenticated. Waiting for the
-    // username field is both the wait and the assertion that it happened.
+    // Auth is an in-app form issuing a direct grant against Keycloak's token
+    // endpoint, not a redirect to Keycloak's hosted page. Waiting for the
+    // username field is both the wait and the assertion that it rendered.
     const username = page.locator("#username");
     await expect(
       username,
-      `expected a Keycloak login form for ${role}; the app may not be in keycloak auth mode`,
+      `expected the sign-in form for ${role}; the app may not be in keycloak auth mode`,
     ).toBeVisible();
 
     await username.fill(role);
     await page.locator("#password").fill(ACCEPTANCE_PASSWORD);
-    await page.locator("#kc-login").click();
+    await page.getByRole("button", { name: /^sign in$/i }).click();
 
-    // Landing back on the app, with the role's identity resolved, is what
-    // proves the round trip worked.
+    // Landing in the app, with the role's identity resolved, proves the round
+    // trip worked.
     await expect(
       page.getByRole("navigation"),
       `${role} did not reach the application after login`,
     ).toBeVisible();
+
+    // Mark the welcome tour as seen before capturing state. Otherwise it
+    // auto-starts on first load in every test and its scrim swallows clicks.
+    await page.evaluate(() => window.localStorage.setItem("vendrai.tour.welcome.v1", "seen"));
 
     await page.context().storageState({ path: storageStatePath(role as Role) });
   });

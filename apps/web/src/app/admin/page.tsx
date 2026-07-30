@@ -12,9 +12,20 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, Thead, Th, Tr, Td } from "@/components/ui/table";
 import { JsonViewer } from "@/components/ui/json-viewer";
+import { useAssistanceTarget } from "@/components/assistance-registry";
 
 export default function AdminIntegrations() {
   const queryClient = useQueryClient();
+  const integrationsAssistance = useAssistanceTarget<HTMLElement>({
+    id: "admin.integrations",
+    title: "Integration health",
+    description: "Credential-free readiness for every dependency, with retry guidance when one degrades.",
+  });
+  const sanctionsAssistance = useAssistanceTarget({
+    id: "admin.sanctions",
+    title: "Sanctions provenance",
+    description: "Official dataset versions and hashes. Cases fail closed when a list is stale rather than passing unchecked.",
+  });
   const health = useIntegrationHealthApiV1AdminIntegrationsHealthGet({
     query: { refetchInterval: 15_000 },
   });
@@ -45,7 +56,7 @@ export default function AdminIntegrations() {
           Health data is unavailable or your role is not authorized.
         </p>
       )}
-      <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3" aria-label="Integration status">
+      <section {...integrationsAssistance} className="grid gap-5 md:grid-cols-2 xl:grid-cols-3" aria-label="Integration status">
         {Object.entries(health.data?.checks ?? {}).map(([name, check]) => (
           <Card key={name}>
             <div className="flex items-center justify-between gap-3">
@@ -76,7 +87,7 @@ export default function AdminIntegrations() {
         ))}
       </section>
 
-      <Card className="mt-8">
+      <Card {...sanctionsAssistance} className="mt-8">
         <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div className="flex items-center gap-3">
             <ShieldCheck className="h-6 w-6 text-[var(--color-accent)]" />

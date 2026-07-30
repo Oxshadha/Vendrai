@@ -3,6 +3,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -11,15 +12,20 @@ import {
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
-import { useAssistanceRegistry, type RegisteredAssistanceTarget } from "@/components/assistance-registry";
+import { useAssistanceRegistry } from "@/components/assistance-registry";
 import { api, type CopilotMessage, type CopilotSession } from "@/lib/api";
+import { getTour, stepsForRoles, WELCOME_TOUR_ID, type TourStep } from "@/lib/tours";
+import { useAuth } from "@/app/providers";
 
 const SESSION_STORAGE_KEY = "neurox-copilot-session";
+/** Set on Finish *or* Skip, so a declined tour never nags again. */
+const WELCOME_SEEN_KEY = "vendrai.tour.welcome.v1";
 
 export interface TourState {
-  group: string;
-  targetIds: string[];
+  tourId: string;
   index: number;
+  /** Role-filtered steps, resolved once at start so the count stays stable. */
+  steps: TourStep[];
 }
 
 function caseIdFromPath(pathname: string): string | undefined {
@@ -57,9 +63,15 @@ interface CopilotContextValue {
   sendFeedback: (messageId: string, rating: "HELPFUL" | "NOT_HELPFUL") => void;
   feedbackSent: ReadonlySet<string>;
   tour: TourState | null;
-  tourTarget: RegisteredAssistanceTarget | undefined;
+  /** The element the current step points at, once it has mounted. */
+  tourElement: HTMLElement | undefined;
+  /** True while a step is navigating or waiting for its target to appear. */
+  tourBusy: boolean;
+  startTour: (tourId: string) => void;
   moveTour: (index: number) => void;
   endTour: () => void;
+  tourPickerOpen: boolean;
+  setTourPickerOpen: (open: boolean) => void;
   scrollAnchor: RefObject<HTMLDivElement | null>;
 }
 
@@ -87,10 +99,15 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [tour, setTour] = useState<TourState | null>(null);
+  const [tourElement, setTourElement] = useState<HTMLElement | undefined>(undefined);
+  const [tourBusy, setTourBusy] = useState(false);
+  const [tourPickerOpen, setTourPickerOpen] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState<Set<string>>(() => new Set());
   const scrollAnchor = useRef<HTMLDivElement>(null);
   const caseId = useMemo(() => caseIdFromPath(pathname), [pathname]);
-  const tourTarget = tour ? assistance.get(tour.targetIds[tour.index]) : undefined;
+  const { roles } = useAuth();
+  /** Guards against a slow step resolving after the user has moved on. */
+  const tourRun = useRef(0);
 
   async function ensureSession(): Promise<CopilotSession> {
     if (session) return session;
@@ -184,20 +201,96 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
   }
 
   function endTour() {
+    tourRun.current += 1;
+    if (tour?.tourId === WELCOME_TOUR_ID && typeof window !== "undefined") {
+      window.localStorage.setItem(WELCOME_SEEN_KEY, "seen");
+    }
     assistance.clearSpotlight();
     setTour(null);
+    setTourElement(undefined);
+    setTourBusy(false);
+  }
+
+  /**
+   * Resolve one step: navigate to its route when needed, wait for the target to
+   * mount, then spotlight it. Steps are skipped forward when an optional target
+   * never appears, so a data-dependent panel (an unanswered clarification, say)
+   * does not dead-end the tour.
+   */
+  async function resolveStep(state: TourState, index: number, direction: 1 | -1) {
+    const run = ++tourRun.current;
+    const bounded = Math.max(0, Math.min(index, state.steps.length - 1));
+    const step = state.steps[bounded];
+    if (!step) return endTour();
+
+    setTour({ ...state, index: bounded });
+    setTourBusy(true);
+    setTourElement(undefined);
+
+    if (step.route && step.route !== pathname) {
+      router.push(step.route);
+    }
+
+    const target = await assistance.waitFor(step.targetId);
+    if (run !== tourRun.current) return; // superseded by a newer step
+
+    if (!target) {
+      const nextIndex = bounded + direction;
+      if (step.optional && nextIndex >= 0 && nextIndex < state.steps.length) {
+        void resolveStep(state, nextIndex, direction);
+        return;
+      }
+      setError("That part of the app is not available right now, so the tour stopped here.");
+      endTour();
+      return;
+    }
+
+    // `autoClearMs: null` -- the default 10s timeout would drop the highlight
+    // while the user is still reading the step.
+    assistance.spotlight(step.targetId, { autoClearMs: null });
+    setTourElement(target.element);
+    setTourBusy(false);
+  }
+
+  function startTour(tourId: string) {
+    const definition = getTour(tourId);
+    if (!definition) return;
+    const steps = stepsForRoles(definition, roles);
+    if (steps.length === 0) {
+      setError("No steps in that tour are available for your role.");
+      return;
+    }
+    setError("");
+    setTourPickerOpen(false);
+    setOpen(false);
+    const state: TourState = { tourId, index: 0, steps };
+    void resolveStep(state, 0, 1);
   }
 
   function moveTour(index: number) {
     if (!tour) return;
-    const bounded = Math.max(0, Math.min(index, tour.targetIds.length - 1));
-    if (!assistance.spotlight(tour.targetIds[bounded])) {
-      setError("That guided control is no longer visible.");
-      endTour();
-      return;
-    }
-    setTour({ ...tour, index: bounded });
+    if (index >= tour.steps.length) return endTour();
+    void resolveStep(tour, index, index < tour.index ? -1 : 1);
   }
+
+  /**
+   * Run the welcome tour once for a new user. Deferred out of the effect body
+   * so the dashboard's targets have mounted, which keeps the first step from
+   * starting against a half-rendered page.
+   */
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (autoStarted.current || pathname !== "/" || roles.size === 0) return;
+    if (window.localStorage.getItem(WELCOME_SEEN_KEY)) return;
+    autoStarted.current = true;
+    const timer = window.setTimeout(() => startTourRef.current(WELCOME_TOUR_ID), 600);
+    return () => window.clearTimeout(timer);
+  }, [pathname, roles]);
+
+  // Held in a ref so the effect above does not have to depend on a function
+  // that is recreated every render.
+  const startTourRef = useRef(startTour);
+  startTourRef.current = startTour;
 
   function runAction(action: CopilotMessage["ui_actions"][number]) {
     setError("");
@@ -214,15 +307,14 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     if (action.action_type === "START_TOUR") {
-      const targets = assistance.list(action.target);
-      if (targets.length === 0) {
-        setError("Open a matching workflow screen before starting this guide.");
-        return;
+      // A concrete catalog id runs that tour; anything else (including the
+      // quick action's placeholder) opens the picker so the user chooses.
+      if (getTour(action.target)) {
+        startTour(action.target);
+      } else {
+        setOpen(false);
+        setTourPickerOpen(true);
       }
-      const nextTour = { group: action.target, targetIds: targets.map((target) => target.id), index: 0 };
-      setTour(nextTour);
-      assistance.spotlight(nextTour.targetIds[0]);
-      setOpen(false);
       return;
     }
     if (action.action_type === "OPEN_PANEL") {
@@ -262,9 +354,13 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
     sendFeedback: (id, rating) => void sendFeedback(id, rating),
     feedbackSent,
     tour,
-    tourTarget,
+    tourElement,
+    tourBusy,
+    startTour,
     moveTour,
     endTour,
+    tourPickerOpen,
+    setTourPickerOpen,
     scrollAnchor,
   };
 

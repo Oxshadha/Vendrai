@@ -75,6 +75,21 @@ function DeltaBadge({ delta }: { delta: number }) {
 }
 
 export default function Dashboard() {
+  const metricsAssistance = useAssistanceTarget<HTMLElement>({
+    id: "dashboard.metrics",
+    title: "Case metrics",
+    description: "Active work, decisions awaiting a human, and blocked cases, each with a week-on-week delta.",
+  });
+  const volumeAssistance = useAssistanceTarget({
+    id: "dashboard.volume",
+    title: "Case volume",
+    description: "Fourteen days of throughput split into resolved same-day versus still in flight.",
+  });
+  const assistantAssistance = useAssistanceTarget({
+    id: "dashboard.assistant",
+    title: "Docked assistant",
+    description: "Ask about statuses, evidence and next steps without leaving the dashboard.",
+  });
   const queueAssistance = useAssistanceTarget({
     id: "dashboard.work-queue",
     title: "Case work queue",
@@ -165,7 +180,7 @@ export default function Dashboard() {
 
       {cases.isError && <div role="alert" className="mb-8 rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-900">Unable to load the work queue. Check your role and integration health.</div>}
 
-      <section className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-3" aria-label="Case metrics">
+      <section {...metricsAssistance} className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-3" aria-label="Case metrics">
         {[
           { label: "Active cases", value: pending, icon: Clock3, detail: "Across all processing states", delta: activeDelta },
           { label: "Awaiting approval", value: approvals, icon: ShieldCheck, detail: "Evidence-bound human decisions", delta: approvalDelta },
@@ -184,7 +199,7 @@ export default function Dashboard() {
 
       <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
         <div className="space-y-6">
-          <Card>
+          <Card {...volumeAssistance}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="font-display text-lg font-bold">Case volume</h2>
@@ -265,7 +280,9 @@ export default function Dashboard() {
         </div>
 
         <div>
-          <DockedAssistantCard />
+          <div {...assistantAssistance}>
+            <DockedAssistantCard />
+          </div>
         </div>
       </div>
     </div>

@@ -32,8 +32,10 @@ const QUICK_ACTIONS = [
     label: "Guided tour",
     icon: MapPin,
     color: "bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-secondary)] text-white",
+    // No concrete tour id: the engine opens the picker so the user chooses
+    // which walkthrough to run rather than being dropped into a fixed one.
     run: (_ask: (text: string) => void, runAction: ReturnType<typeof useCopilotContext>["runAction"]) =>
-      runAction({ action_type: "START_TOUR", target: "dashboard.orientation", label: "Guided tour" }),
+      runAction({ action_type: "START_TOUR", target: "__picker__", label: "Guided tour" }),
   },
 ];
 
