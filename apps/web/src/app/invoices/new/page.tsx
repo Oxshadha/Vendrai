@@ -75,14 +75,6 @@ export default function InvoiceIntake() {
 
   return (
     <div className="min-h-full p-6 lg:p-12">
-      <header className="mb-10">
-        <p className="mb-1 text-sm font-bold text-[var(--color-accent)]">Accounts Payable</p>
-        <h1 className="font-display text-3xl font-bold">Process Invoice Exception</h1>
-        <p className="mt-2 text-[var(--color-muted)]">Upload an invoice to trigger 3-way matching and tolerance checks.</p>
-      </header>
-      {/* Prior work for this case type sits to the left of the form, so the
-          history that used to be buried in the combined dashboard queue is
-          visible while raising a new one. */}
       <div className="grid max-w-[100rem] gap-8 xl:grid-cols-[20rem_minmax(0,1fr)]">
         <CaseQueuePanel
           caseType="INVOICE_EXCEPTION"
@@ -92,6 +84,13 @@ export default function InvoiceIntake() {
           assistanceTitle="Previous invoice exceptions"
           assistanceDescription="Invoice exception work already in flight, filtered to this workflow only."
         />
+
+        <div>
+        <header className="mb-10">
+          <p className="mb-1 text-sm font-bold text-[var(--color-accent)]">Accounts Payable</p>
+          <h1 className="font-display text-3xl font-bold">Process Invoice Exception</h1>
+          <p className="mt-2 text-[var(--color-muted)]">Upload an invoice to trigger 3-way matching and tolerance checks.</p>
+        </header>
 
         <form onSubmit={submit} className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
         <Card {...intakeAssistance} className="space-y-8">
@@ -142,7 +141,8 @@ export default function InvoiceIntake() {
             </ol>
           </Card>
         </aside>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );

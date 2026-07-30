@@ -68,14 +68,6 @@ export default function CaseIntake() {
 
   return (
     <div className="min-h-full p-6 lg:p-12">
-      <header className="mb-10">
-        <p className="mb-1 text-sm font-bold text-[var(--color-accent)]">Secure intake</p>
-        <h1 className="font-display text-3xl font-bold">Start supplier onboarding</h1>
-        <p className="mt-2 text-[var(--color-muted)]">Files enter quarantine first. They are scanned before extraction or agent analysis.</p>
-      </header>
-      {/* Prior work for this case type sits to the left of the form, so the
-          history that used to be buried in the combined dashboard queue is
-          visible while raising a new one. */}
       <div className="grid max-w-[100rem] gap-8 xl:grid-cols-[20rem_minmax(0,1fr)]">
         <CaseQueuePanel
           caseType="VENDOR_ONBOARDING"
@@ -85,6 +77,13 @@ export default function CaseIntake() {
           assistanceTitle="Previous supplier cases"
           assistanceDescription="Supplier onboarding work already in flight, filtered to this workflow only."
         />
+
+        <div>
+        <header className="mb-10">
+          <p className="mb-1 text-sm font-bold text-[var(--color-accent)]">Secure intake</p>
+          <h1 className="font-display text-3xl font-bold">Start supplier onboarding</h1>
+          <p className="mt-2 text-[var(--color-muted)]">Files enter quarantine first. They are scanned before extraction or agent analysis.</p>
+        </header>
 
         <form onSubmit={submit} className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
         <Card {...intakeAssistance} className="space-y-8">
@@ -129,7 +128,8 @@ export default function CaseIntake() {
             </ol>
           </Card>
         </aside>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );
