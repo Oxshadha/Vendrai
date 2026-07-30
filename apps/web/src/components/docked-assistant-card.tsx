@@ -1,9 +1,10 @@
 "use client";
 
-import { LoaderCircle, MapPin, MessagesSquare, Search, ShieldAlert, Sparkles } from "lucide-react";
+import { MapPin, MessagesSquare, Search, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/app/providers";
 import { Card } from "@/components/ui/card";
 import { MaterialIcon } from "@/components/ui/material-icon";
+import { ChatComposer, ChatThread } from "@/components/copilot-chat";
 import { useCopilotContext } from "@/components/copilot-provider";
 
 const QUICK_ACTIONS = [
@@ -37,83 +38,63 @@ const QUICK_ACTIONS = [
 ];
 
 /**
- * Always-visible assistant card for the dashboard's right rail. Reuses
- * CopilotProvider's live conversation -- a question asked here shows up in
- * the floating panel too, and vice versa (see copilot-provider.tsx).
+ * Always-visible assistant for the dashboard's right rail. Shares
+ * CopilotProvider's live conversation and copilot-chat's rendering with the
+ * floating panel, so a question asked in either shows up in both looking the
+ * same rather than as two different treatments of one thread.
  */
 export function DockedAssistantCard() {
   const { displayName } = useAuth();
-  const { messages, question, setQuestion, loading, submit, ask, runAction } = useCopilotContext();
-  const visibleMessages = messages.slice(-6);
+  const { messages, loading, ask, runAction } = useCopilotContext();
+  const isEmpty = messages.length === 0 && !loading;
 
   return (
-    <Card tint="accent">
-      <p className="flex items-center gap-2 font-display text-lg font-bold text-[var(--color-ink)]">
-        Hi, {displayName}
-        <MaterialIcon name="waving_hand" className="h-4 w-4 shrink-0 text-[var(--color-accent)]" />
-      </p>
-      <p className="mt-1 text-sm text-[var(--color-muted)]">How can I help you?</p>
-
-      <div className="mt-5 grid grid-cols-2 gap-3">
-        {QUICK_ACTIONS.map((action) => (
-          <button
-            key={action.label}
-            type="button"
-            onClick={() => action.run(ask, runAction)}
-            className="flex flex-col items-start gap-2 rounded-xl border border-white/60 bg-white/70 p-3 text-left transition-colors hover:bg-white"
-          >
-            <span className={`grid h-8 w-8 place-items-center rounded-lg ${action.color}`}>
-              <action.icon className="h-4 w-4" aria-hidden="true" />
-            </span>
-            <span className="text-xs font-bold text-[var(--color-ink)]">{action.label}</span>
-          </button>
-        ))}
+    <Card padding="none" className="flex max-h-[42rem] flex-col overflow-hidden">
+      <div className="shrink-0 border-b border-[var(--color-border)] px-5 py-4">
+        <p className="flex items-center gap-2 font-display text-lg font-bold text-[var(--color-ink)]">
+          Hi, {displayName}
+          <MaterialIcon name="waving_hand" className="h-4 w-4 shrink-0 text-[var(--color-accent)]" />
+        </p>
+        <p className="mt-0.5 text-sm text-[var(--color-muted)]">
+          {isEmpty ? "How can I help you?" : "Ask a follow-up below."}
+        </p>
       </div>
 
-      {visibleMessages.length > 0 && (
-        <div className="mt-5 max-h-56 space-y-2 overflow-y-auto border-t border-white/60 pt-4">
-          {visibleMessages.map((message) => (
-            <p
-              key={message.copilot_message_id}
-              className={
-                message.role === "USER"
-                  ? "ml-6 rounded-xl bg-[var(--color-accent)] px-3 py-2 text-xs text-white"
-                  : "mr-6 rounded-xl bg-white/80 px-3 py-2 text-xs text-[var(--color-ink)]"
-              }
+      {/* Quick actions are a starting point, not permanent furniture: once the
+          conversation is underway they would push the transcript out of view,
+          so they give way to it. Every entry point stays in the composer. */}
+      {isEmpty ? (
+        <div className="grid grid-cols-2 gap-3 p-5">
+          {QUICK_ACTIONS.map((action) => (
+            <button
+              key={action.label}
+              type="button"
+              onClick={() => action.run(ask, runAction)}
+              className="group flex flex-col items-start gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--color-accent)]/30 hover:bg-[var(--color-surface)] hover:shadow-[var(--shadow-sm)]"
             >
-              {message.content}
-            </p>
+              <span
+                className={`grid h-8 w-8 place-items-center rounded-lg transition-transform duration-200 group-hover:scale-110 ${action.color}`}
+              >
+                <action.icon className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <span className="text-xs font-bold text-[var(--color-ink)]">{action.label}</span>
+            </button>
           ))}
-          {loading && (
-            <p className="flex items-center gap-2 text-xs text-[var(--color-muted)]" aria-live="polite">
-              <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-              Thinking…
-            </p>
-          )}
+        </div>
+      ) : (
+        /* `min-h-0` lets this shrink inside the flex column so the transcript
+           scrolls rather than stretching the card down the page. */
+        <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--color-bg)] px-4 py-4">
+          <ChatThread limit={12} />
         </div>
       )}
 
-      <form onSubmit={submit} className="mt-5 flex items-center gap-2">
-        <label htmlFor="docked-copilot-question" className="sr-only">Ask something</label>
-        <input
-          id="docked-copilot-question"
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          placeholder="Ask something…"
-          className="h-11 flex-1 rounded-full border border-white/60 bg-white/80 px-4 text-sm outline-none placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)]"
-        />
-        <button
-          type="submit"
-          aria-label="Send question"
-          disabled={loading || question.trim().length < 2}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--color-accent)] text-white transition-colors hover:bg-[var(--color-accent-dark)] disabled:opacity-40"
-        >
-          <Sparkles className="h-4 w-4" aria-hidden="true" />
-        </button>
-      </form>
-      <p className="mt-3 text-[11px] text-[var(--color-muted)]">
-        Explains and guides. Cannot progress or approve work.
-      </p>
+      <div className="shrink-0 border-t border-[var(--color-border)] p-3">
+        <ChatComposer id="docked-copilot-question" placeholder="Ask something…" />
+        <p className="mt-2 px-1 text-[11px] text-[var(--color-muted)]">
+          Explains and guides. Cannot progress or approve work.
+        </p>
+      </div>
     </Card>
   );
 }
