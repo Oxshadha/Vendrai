@@ -14,6 +14,7 @@ import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { StatusChip } from "@/components/status-chip";
 import { DotMatrixChart } from "@/components/ui/dot-matrix-chart";
+import { MaterialIcon } from "@/components/ui/material-icon";
 import { DockedAssistantCard } from "@/components/docked-assistant-card";
 import { useAssistanceTarget } from "@/components/assistance-registry";
 
@@ -192,7 +193,7 @@ export default function Dashboard() {
             </div>
             {insight && (
               <div className="mt-4 flex items-start gap-2 rounded-xl bg-[var(--color-accent-light)] p-3 text-sm text-[var(--color-accent-dark)]">
-                <span aria-hidden="true">✨</span>
+                <MaterialIcon name="auto_awesome" className="mt-0.5 h-4 w-4 shrink-0" />
                 <p>{insight}</p>
               </div>
             )}
