@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/select";
 import { Dropzone } from "@/components/ui/dropzone";
 import { ProgressSteps } from "@/components/ui/progress-steps";
 import { useAssistanceTarget } from "@/components/assistance-registry";
+import { CaseQueuePanel } from "@/components/case-queue-panel";
 
 const STEPS = [
   "Preparing upload",
@@ -79,7 +80,20 @@ export default function InvoiceIntake() {
         <h1 className="font-display text-3xl font-bold">Process Invoice Exception</h1>
         <p className="mt-2 text-[var(--color-muted)]">Upload an invoice to trigger 3-way matching and tolerance checks.</p>
       </header>
-      <form onSubmit={submit} className="grid max-w-6xl gap-8 lg:grid-cols-[1.5fr_1fr]">
+      {/* Prior work for this case type sits to the left of the form, so the
+          history that used to be buried in the combined dashboard queue is
+          visible while raising a new one. */}
+      <div className="grid max-w-[100rem] gap-8 xl:grid-cols-[20rem_minmax(0,1fr)]">
+        <CaseQueuePanel
+          caseType="INVOICE_EXCEPTION"
+          title="Invoice exceptions"
+          description="Exceptions already raised from this form."
+          assistanceId="invoice.recent-cases"
+          assistanceTitle="Previous invoice exceptions"
+          assistanceDescription="Invoice exception work already in flight, filtered to this workflow only."
+        />
+
+        <form onSubmit={submit} className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
         <Card {...intakeAssistance} className="space-y-8">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -128,7 +142,8 @@ export default function InvoiceIntake() {
             </ol>
           </Card>
         </aside>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

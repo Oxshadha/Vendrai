@@ -85,12 +85,6 @@ export const TOURS: TourDefinition[] = [
         body: "Fourteen days of case volume, split into resolved same-day versus still in flight. A growing pale band means work is accumulating.",
       },
       {
-        targetId: "dashboard.work-queue",
-        route: "/",
-        title: "The queue you actually work",
-        body: "Filter by status, priority and ownership; your filters are remembered. Each row shows how long the case has waited, so nothing ages out of sight.",
-      },
-      {
         targetId: "dashboard.assistant",
         route: "/",
         title: "Ask rather than hunt",
@@ -103,10 +97,22 @@ export const TOURS: TourDefinition[] = [
         body: "Uploads land in quarantine and are malware-scanned before anything reads them. Extraction and agent analysis only run on cleared files.",
       },
       {
+        targetId: "supplier.recent-cases",
+        route: "/cases/new",
+        title: "Supplier work already in flight",
+        body: "Onboarding cases only, filtered to this workflow. Filter by status, priority and ownership; your view is remembered per workflow.",
+      },
+      {
         targetId: "invoice.secure-intake",
         route: "/invoices/new",
         title: "How invoice exceptions start",
         body: "Invoices are matched three ways against purchase orders and goods receipts. Anything outside tolerance becomes an exception for review.",
+      },
+      {
+        targetId: "invoice.recent-cases",
+        route: "/invoices/new",
+        title: "Exceptions already in flight",
+        body: "Invoice exceptions only, kept separate from supplier onboarding so each workflow has its own queue and saved view.",
       },
       {
         targetId: "approvals.queue",
@@ -149,7 +155,7 @@ export const TOURS: TourDefinition[] = [
   {
     id: "dashboard.orientation",
     label: "Dashboard orientation",
-    summary: "The metrics, the volume chart and how to work the case queue.",
+    summary: "The headline metrics, the volume chart and the docked assistant.",
     steps: [
       {
         targetId: "dashboard.metrics",
@@ -162,12 +168,6 @@ export const TOURS: TourDefinition[] = [
         route: "/",
         title: "Throughput over two weeks",
         body: "Resolved same-day versus still in flight. The highlighted column is the busiest day in the window.",
-      },
-      {
-        targetId: "dashboard.work-queue",
-        route: "/",
-        title: "Working the queue",
-        body: "Filter by status, priority and ownership. Saved filters persist, and ownership tells you whether a case is already claimed.",
       },
       {
         targetId: "dashboard.assistant",
@@ -188,6 +188,12 @@ export const TOURS: TourDefinition[] = [
         title: "Secure intake",
         body: "Name the supplier, set priority, attach evidence. Files are quarantined and scanned before extraction or any agent reads them.",
       },
+      {
+        targetId: "supplier.recent-cases",
+        route: "/cases/new",
+        title: "Previous supplier cases",
+        body: "Onboarding work already raised, filtered to this workflow, with its own saved view.",
+      },
     ],
   },
   {
@@ -200,6 +206,12 @@ export const TOURS: TourDefinition[] = [
         route: "/invoices/new",
         title: "Invoice intake",
         body: "Attach the invoice with its purchase order and receipt. Line items are extracted and matched, and tolerance breaches become exceptions.",
+      },
+      {
+        targetId: "invoice.recent-cases",
+        route: "/invoices/new",
+        title: "Previous invoice exceptions",
+        body: "Exception work already raised, kept separate from supplier onboarding.",
       },
     ],
   },
