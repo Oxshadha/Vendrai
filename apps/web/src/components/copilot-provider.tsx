@@ -20,6 +20,10 @@ import { useAuth } from "@/app/providers";
 const SESSION_STORAGE_KEY = "neurox-copilot-session";
 /** Set on Finish *or* Skip, so a declined tour never nags again. */
 const WELCOME_SEEN_KEY = "vendrai.tour.welcome.v1";
+/** How long a one-off spotlight stays lit before fading. */
+const SPOTLIGHT_MS = 6_000;
+
+export type CopilotView = "chat" | "tours";
 
 export interface TourState {
   tourId: string;
@@ -65,15 +69,17 @@ interface CopilotContextValue {
   sendFeedback: (messageId: string, rating: "HELPFUL" | "NOT_HELPFUL") => void;
   feedbackSent: ReadonlySet<string>;
   tour: TourState | null;
-  /** The element the current step points at, once it has mounted. */
-  tourElement: HTMLElement | undefined;
+  /** Element currently highlighted, whether by a tour step or a one-off action. */
+  spotlightElement: HTMLElement | undefined;
   /** True while a step is navigating or waiting for its target to appear. */
   tourBusy: boolean;
   startTour: (tourId: string) => void;
   moveTour: (index: number) => void;
   endTour: () => void;
-  tourPickerOpen: boolean;
-  setTourPickerOpen: (open: boolean) => void;
+  /** Which face the panel shows. The tour list lives inside it, not in a modal. */
+  view: CopilotView;
+  setView: (view: CopilotView) => void;
+  openTours: () => void;
   scrollAnchor: RefObject<HTMLDivElement | null>;
 }
 
@@ -101,9 +107,9 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [tour, setTour] = useState<TourState | null>(null);
-  const [tourElement, setTourElement] = useState<HTMLElement | undefined>(undefined);
+  const [spotlightElement, setSpotlightElement] = useState<HTMLElement | undefined>(undefined);
   const [tourBusy, setTourBusy] = useState(false);
-  const [tourPickerOpen, setTourPickerOpen] = useState(false);
+  const [view, setView] = useState<CopilotView>("chat");
   const [feedbackSent, setFeedbackSent] = useState<Set<string>>(() => new Set());
   const scrollAnchor = useRef<HTMLDivElement>(null);
   const caseId = useMemo(() => caseIdFromPath(pathname), [pathname]);
@@ -166,7 +172,14 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
    */
   function closeCopilot() {
     setOpen(false);
+    setView("chat");
     resetConversation();
+  }
+
+  /** Open the assistant straight onto the tour list. */
+  function openTours() {
+    setView("tours");
+    void openCopilot();
   }
 
   async function openCopilot() {
@@ -238,7 +251,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
     }
     assistance.clearSpotlight();
     setTour(null);
-    setTourElement(undefined);
+    setSpotlightElement(undefined);
     setTourBusy(false);
   }
 
@@ -256,7 +269,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
 
     setTour({ ...state, index: bounded });
     setTourBusy(true);
-    setTourElement(undefined);
+    setSpotlightElement(undefined);
 
     if (step.route && step.route !== pathname) {
       router.push(step.route);
@@ -279,7 +292,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
     // `autoClearMs: null` -- the default 10s timeout would drop the highlight
     // while the user is still reading the step.
     assistance.spotlight(step.targetId, { autoClearMs: null });
-    setTourElement(target.element);
+    setSpotlightElement(target.element);
     setTourBusy(false);
   }
 
@@ -292,7 +305,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     setError("");
-    setTourPickerOpen(false);
+    setView("chat");
     setOpen(false);
     const state: TourState = { tourId, index: 0, steps };
     void resolveStep(state, 0, 1);
@@ -330,21 +343,25 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     if (action.action_type === "SPOTLIGHT") {
-      if (!assistance.spotlight(action.target)) {
+      const target = assistance.get(action.target);
+      if (!target || !assistance.spotlight(action.target, { autoClearMs: SPOTLIGHT_MS })) {
         setError("That control is not visible in the current screen state.");
         return;
       }
+      // Drive the shared overlay directly: without this the element is only
+      // scrolled and focused, with no visible highlight at all.
+      setSpotlightElement(target.element);
+      window.setTimeout(() => setSpotlightElement(undefined), SPOTLIGHT_MS);
       setOpen(false);
       return;
     }
     if (action.action_type === "START_TOUR") {
       // A concrete catalog id runs that tour; anything else (including the
-      // quick action's placeholder) opens the picker so the user chooses.
+      // quick action's placeholder) shows the list inside the panel.
       if (getTour(action.target)) {
         startTour(action.target);
       } else {
-        setOpen(false);
-        setTourPickerOpen(true);
+        setView("tours");
       }
       return;
     }
@@ -386,13 +403,14 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
     sendFeedback: (id, rating) => void sendFeedback(id, rating),
     feedbackSent,
     tour,
-    tourElement,
+    spotlightElement,
     tourBusy,
     startTour,
     moveTour,
     endTour,
-    tourPickerOpen,
-    setTourPickerOpen,
+    view,
+    setView,
+    openTours,
     scrollAnchor,
   };
 
