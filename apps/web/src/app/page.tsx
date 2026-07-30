@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DotMatrixChart } from "@/components/ui/dot-matrix-chart";
 import { MaterialIcon } from "@/components/ui/material-icon";
-import { DockedAssistantCard } from "@/components/docked-assistant-card";
 import { useAssistanceTarget } from "@/components/assistance-registry";
 
 const terminal = new Set(["COMPLETED", "REJECTED", "FAILED", "CANCELLED"]);
@@ -74,11 +73,6 @@ export default function Dashboard() {
     id: "dashboard.volume",
     title: "Case volume",
     description: "Fourteen days of throughput split into resolved same-day versus still in flight.",
-  });
-  const assistantAssistance = useAssistanceTarget({
-    id: "dashboard.assistant",
-    title: "Docked assistant",
-    description: "Ask about statuses, evidence and next steps without leaving the dashboard.",
   });
   // The queue itself now lives beside each intake form, split by case type.
   // This query stays because the metrics below are counted from it -- and it is
@@ -152,9 +146,8 @@ export default function Dashboard() {
         ))}
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
-        <div className="space-y-6">
-          <Card {...volumeAssistance}>
+      <div className="space-y-6">
+        <Card {...volumeAssistance}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="font-display text-lg font-bold">Case volume</h2>
@@ -176,15 +169,7 @@ export default function Dashboard() {
                 ariaLabel="Case volume over the last 14 days"
               />
             </div>
-          </Card>
-
-        </div>
-
-        <div>
-          <div {...assistantAssistance}>
-            <DockedAssistantCard />
-          </div>
-        </div>
+        </Card>
       </div>
     </div>
   );

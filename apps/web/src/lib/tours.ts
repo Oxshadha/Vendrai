@@ -85,10 +85,10 @@ export const TOURS: TourDefinition[] = [
         body: "Fourteen days of case volume, split into resolved same-day versus still in flight. A growing pale band means work is accumulating.",
       },
       {
-        targetId: "dashboard.assistant",
+        targetId: "copilot.launcher",
         route: "/",
         title: "Ask rather than hunt",
-        body: "The assistant explains statuses, evidence and next steps. It can guide and point, but it can never approve or progress work on your behalf.",
+        body: "The assistant lives here on every screen. It explains statuses, evidence and next steps, but it can never approve or progress work on your behalf.",
       },
       {
         targetId: "supplier.secure-intake",
@@ -155,7 +155,7 @@ export const TOURS: TourDefinition[] = [
   {
     id: "dashboard.orientation",
     label: "Dashboard orientation",
-    summary: "The headline metrics, the volume chart and the docked assistant.",
+    summary: "The headline metrics, the volume chart and the assistant.",
     steps: [
       {
         targetId: "dashboard.metrics",
@@ -170,7 +170,7 @@ export const TOURS: TourDefinition[] = [
         body: "Resolved same-day versus still in flight. The highlighted column is the busiest day in the window.",
       },
       {
-        targetId: "dashboard.assistant",
+        targetId: "copilot.launcher",
         route: "/",
         title: "The assistant",
         body: "Ask what a status means or which cases carry risk. It explains and guides, but cannot progress work.",
