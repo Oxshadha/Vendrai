@@ -391,6 +391,15 @@ services:
       ALERT_TENANT_IDS: ${ALERT_TENANT_IDS:-}
     depends_on: *worker-depends
 
+  prediction-worker:
+    <<: *api-image
+    command: ["python", "-m", "app.workers.predictions"]
+    environment:
+      <<: *api-environment
+      PREDICTION_REFRESH_INTERVAL_SECONDS: ${PREDICTION_REFRESH_INTERVAL_SECONDS:-3600}
+      ALERT_TENANT_IDS: ${ALERT_TENANT_IDS:-}
+    depends_on: *worker-depends
+
   sanctions-worker:
     <<: *api-image
     command: ["python", "-m", "app.workers.sanctions"]

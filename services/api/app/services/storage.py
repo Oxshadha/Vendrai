@@ -141,6 +141,31 @@ def store_private_artifact(
     target.write_bytes(payload)
 
 
+def read_private_artifact(key: str) -> bytes:
+    """Read back an object written by ``store_private_artifact``.
+
+    The write side had no counterpart, so persisted model artifacts could be
+    produced but never loaded. Raises ``FileNotFoundError`` on a miss in both
+    backends so callers do not have to branch on the storage backend.
+    """
+    if settings.STORAGE_BACKEND == "s3":
+        # botocore is imported lazily here as it is everywhere else in this
+        # module, so the local backend never pulls it in.
+        from botocore.exceptions import ClientError
+
+        try:
+            response = _s3_client().get_object(
+                Bucket=settings.S3_DOCUMENT_BUCKET, Key=key
+            )
+        except ClientError as error:  # pragma: no cover - network path
+            raise FileNotFoundError(key) from error
+        return bytes(response["Body"].read())
+    source = local_object_path(key)
+    if not source.exists():
+        raise FileNotFoundError(key)
+    return source.read_bytes()
+
+
 def inspect_quarantined_object(key: str, content_type: str, expected_size: int) -> tuple[int, str]:
     client = _s3_client()
     try:
