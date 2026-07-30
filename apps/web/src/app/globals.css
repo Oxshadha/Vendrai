@@ -78,9 +78,21 @@ body {
   font-variation-settings: "opsz" 18;
 }
 
+/* Note this rule is unlayered, so it outranks Tailwind's layered utilities no
+ * matter their specificity -- `focus:outline-none` on a component cannot
+ * cancel it. Keep it scoped tightly for that reason. */
 :focus-visible {
-  outline: 3px solid var(--color-accent);
-  outline-offset: 3px;
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Form controls indicate focus with their own accent border. Without this
+ * they would carry that plus the outline above, stacking into a heavy
+ * double ring. */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
 }
 
 button:disabled {

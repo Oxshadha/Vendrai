@@ -327,7 +327,7 @@ export default function CaseDetail() {
                 <Badge tone="warning" className="mt-2">{task.task_type.replaceAll("_", " ")}</Badge>
                 <code className="mt-4 block break-all rounded-xl bg-[var(--color-ink)] p-3 text-xs text-slate-200">{task.evidence_hash}</code>
                 <label htmlFor="decision-comment" className="mb-2 mt-5 block text-sm font-bold">Decision comment</label>
-                <textarea id="decision-comment" value={comment} onChange={(event) => setComment(event.target.value)} rows={4} className="w-full rounded-xl border border-[var(--color-border)] bg-white p-4 text-sm shadow-[var(--shadow-xs)] outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/25" placeholder="Required when rejecting; recommended for approval" />
+                <textarea id="decision-comment" value={comment} onChange={(event) => setComment(event.target.value)} rows={4} className="w-full rounded-xl border border-[var(--color-border)] bg-white p-4 text-sm shadow-[var(--shadow-xs)] outline-none focus:border-[var(--color-accent)]" placeholder="Required when rejecting; recommended for approval" />
                 {decisionError && <p role="alert" className="mt-3 rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{decisionError}</p>}
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
                   <Button type="button" variant="destructive" disabled={decide.isPending || !comment.trim()} onClick={() => decide.mutate({ task, decision: "REJECTED" })} className="gap-2"><XCircle className="h-4 w-4" />Reject</Button>
