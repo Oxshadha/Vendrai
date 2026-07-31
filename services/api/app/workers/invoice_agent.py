@@ -744,8 +744,8 @@ async def handle_invoice_submitted(envelope: dict[str, Any]) -> None:
             await set_worker_tenant(session, str(tenant_id))
             if await session.get(InboxReceipt, {"consumer_name": "invoice-worker", "event_id": event_id}):
                 return
-            case = await session.get(Case, case_id, with_for_update=True)
-            run = await session.get(AgentRun, run_id, with_for_update=True)
+            case = await session.get(Case, case_id, with_for_update={"key_share": True})
+            run = await session.get(AgentRun, run_id, with_for_update={"key_share": True})
             if not case or case.tenant_id != tenant_id or not run:
                 raise RuntimeError("INVOICE_CONTEXT_NOT_FOUND")
             documents = (
@@ -808,8 +808,8 @@ async def run_invoice_analysis(envelope: dict[str, Any]) -> None:
             await set_worker_tenant(session, str(tenant_id))
             if await session.get(InboxReceipt, {"consumer_name": "invoice-worker", "event_id": event_id}):
                 return
-            case = await session.get(Case, case_id, with_for_update=True)
-            run = await session.get(AgentRun, run_id, with_for_update=True)
+            case = await session.get(Case, case_id, with_for_update={"key_share": True})
+            run = await session.get(AgentRun, run_id, with_for_update={"key_share": True})
             if not case or case.tenant_id != tenant_id or not run:
                 raise RuntimeError("INVOICE_CONTEXT_NOT_FOUND")
             # Tolerances, the tax reference rate, and the duplicate window are

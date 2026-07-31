@@ -64,7 +64,7 @@ async def _authorized_document(
         Document.tenant_id == principal.tenant_id,
     )
     if for_update:
-        statement = statement.with_for_update()
+        statement = statement.with_for_update(key_share=True)
     document = await db.scalar(statement)
     if not document:
         raise HTTPException(404, detail={"code": "DOCUMENT_NOT_FOUND"})
@@ -422,7 +422,7 @@ async def correct_document_field(
             ExtractedField.document_id == document.document_id,
             ExtractedField.tenant_id == principal.tenant_id,
         )
-        .with_for_update()
+        .with_for_update(key_share=True)
     )
     if not field:
         raise HTTPException(404, detail={"code": "EXTRACTED_FIELD_NOT_FOUND"})

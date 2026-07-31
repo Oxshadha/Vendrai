@@ -63,7 +63,7 @@ async def respond(
     principal.require_any("requester", "analyst", "admin")
     task = await db.scalar(select(ClarificationTask).where(
         ClarificationTask.clarification_task_id == task_id, ClarificationTask.tenant_id == principal.tenant_id,
-    ).with_for_update())
+    ).with_for_update(key_share=True))
     if not task:
         raise HTTPException(404, detail={"code": "CLARIFICATION_TASK_NOT_FOUND"})
     if task.status != "OPEN":
@@ -74,7 +74,7 @@ async def respond(
             Case.case_id == task.case_id,
             Case.tenant_id == principal.tenant_id,
         )
-        .with_for_update()
+        .with_for_update(key_share=True)
     )
     if not case:
         raise HTTPException(404, detail={"code": "CLARIFICATION_TASK_NOT_FOUND"})

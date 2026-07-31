@@ -23,7 +23,7 @@ ExpectedVersion = Annotated[int, Header(alias="If-Match", ge=1)]
 async def _tenant_case(db: AsyncSession, principal: Principal, case_id: uuid.UUID, for_update: bool = False) -> Case:
     statement = select(Case).where(Case.case_id == case_id, Case.tenant_id == principal.tenant_id)
     if for_update:
-        statement = statement.with_for_update()
+        statement = statement.with_for_update(key_share=True)
     case = (await db.execute(statement)).scalar_one_or_none()
     if (
         not case

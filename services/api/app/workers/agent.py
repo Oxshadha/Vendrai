@@ -392,7 +392,7 @@ async def handle_case_submitted(envelope: dict) -> None:
                 return
             documents = (await session.execute(select(Document).where(Document.case_id == case_id))).scalars().all()
             if documents and all(document.processing_status == "READY" for document in documents):
-                case = await session.get(Case, case_id, with_for_update=True)
+                case = await session.get(Case, case_id, with_for_update={"key_share": True})
                 case.status = CaseStatus.SPECIALIST_ANALYSIS
                 case.current_version += 1
                 enqueue_event(
@@ -416,8 +416,8 @@ async def run_analysis(envelope: dict) -> None:
             await set_worker_tenant(session, str(tenant_id))
             if await session.get(InboxReceipt, {"consumer_name": "agent-worker", "event_id": event_id}):
                 return
-            case = await session.get(Case, case_id, with_for_update=True)
-            run = await session.get(AgentRun, run_id, with_for_update=True)
+            case = await session.get(Case, case_id, with_for_update={"key_share": True})
+            run = await session.get(AgentRun, run_id, with_for_update={"key_share": True})
             if not case or case.tenant_id != tenant_id or not run:
                 raise RuntimeError("CASE_OR_RUN_NOT_FOUND")
             run.status = "RUNNING"
@@ -1548,8 +1548,8 @@ async def resume_human_decision(envelope: dict) -> None:
                 {"consumer_name": "agent-worker", "event_id": event_id},
             ):
                 return
-            case = await session.get(Case, case_id, with_for_update=True)
-            run = await session.get(AgentRun, run_id, with_for_update=True)
+            case = await session.get(Case, case_id, with_for_update={"key_share": True})
+            run = await session.get(AgentRun, run_id, with_for_update={"key_share": True})
             task = (
                 await session.get(ClarificationTask, task_id)
                 if decision == "CLARIFIED"
@@ -1789,8 +1789,8 @@ async def resume_erp_confirmation(envelope: dict) -> None:
                 {"consumer_name": "agent-worker", "event_id": event_id},
             ):
                 return
-            case = await session.get(Case, case_id, with_for_update=True)
-            run = await session.get(AgentRun, run_id, with_for_update=True)
+            case = await session.get(Case, case_id, with_for_update={"key_share": True})
+            run = await session.get(AgentRun, run_id, with_for_update={"key_share": True})
             operation = await session.get(
                 ErpOperation,
                 uuid.UUID(payload["operation_id"]),

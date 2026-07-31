@@ -126,7 +126,7 @@ async def publish_policy(
     principal.require_any("admin")
     version = await db.scalar(select(PolicyVersion).where(
         PolicyVersion.policy_version_id == policy_version_id, PolicyVersion.tenant_id == principal.tenant_id,
-    ).with_for_update())
+    ).with_for_update(key_share=True))
     if not version:
         raise HTTPException(404, detail={"code": "POLICY_VERSION_NOT_FOUND"})
     document = await db.get(PolicyDocument, version.policy_document_id)

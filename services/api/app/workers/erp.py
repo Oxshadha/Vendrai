@@ -184,7 +184,7 @@ async def _prepare_operation(
             {"consumer_name": "erp-worker", "event_id": event_id},
         ):
             return None
-        case = await session.get(Case, case_id, with_for_update=True)
+        case = await session.get(Case, case_id, with_for_update={"key_share": True})
         task = await session.get(ApprovalTask, task_id)
         if not case or case.tenant_id != tenant_id or not task:
             raise RuntimeError("ERP_CONTEXT_NOT_FOUND")
@@ -200,7 +200,7 @@ async def _prepare_operation(
                 ErpOperation.tenant_id == tenant_id,
                 ErpOperation.idempotency_key == idempotency_key,
             )
-            .with_for_update()
+            .with_for_update(key_share=True)
         )
         if existing and existing.status == "SUCCEEDED":
             session.add(
@@ -287,12 +287,12 @@ async def _record_failure(
         case = await session.get(
             Case,
             prepared.case_id,
-            with_for_update=True,
+            with_for_update={"key_share": True},
         )
         operation = await session.get(
             ErpOperation,
             prepared.operation_id,
-            with_for_update=True,
+            with_for_update={"key_share": True},
         )
         if not case or not operation:
             raise RuntimeError("ERP_FAILURE_CONTEXT_NOT_FOUND")
@@ -379,12 +379,12 @@ async def sync_erp(envelope: dict) -> None:
         case = await session.get(
             Case,
             prepared.case_id,
-            with_for_update=True,
+            with_for_update={"key_share": True},
         )
         operation = await session.get(
             ErpOperation,
             prepared.operation_id,
-            with_for_update=True,
+            with_for_update={"key_share": True},
         )
         if not case or not operation:
             raise RuntimeError("ERP_FINALIZE_CONTEXT_NOT_FOUND")
@@ -503,12 +503,12 @@ async def sync_invoice_resolution(envelope: dict) -> None:
         case = await session.get(
             Case,
             prepared.case_id,
-            with_for_update=True,
+            with_for_update={"key_share": True},
         )
         operation = await session.get(
             ErpOperation,
             prepared.operation_id,
-            with_for_update=True,
+            with_for_update={"key_share": True},
         )
         if not case or not operation:
             raise RuntimeError("ERP_FINALIZE_CONTEXT_NOT_FOUND")

@@ -84,7 +84,7 @@ async def disposition_risk_finding(
             RiskFinding.risk_finding_id == risk_finding_id,
             RiskFinding.tenant_id == principal.tenant_id,
         )
-        .with_for_update()
+        .with_for_update(key_share=True)
     )
     if not finding:
         raise HTTPException(404, detail={"code": "RISK_FINDING_NOT_FOUND"})

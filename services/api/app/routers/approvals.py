@@ -61,7 +61,7 @@ async def decide_approval(
 ):
     principal.require_any("approver", "procurement_approver", "compliance_approver", "finance_approver", "admin")
     task = await db.scalar(
-        select(ApprovalTask).where(ApprovalTask.approval_task_id == task_id, ApprovalTask.tenant_id == principal.tenant_id).with_for_update()
+        select(ApprovalTask).where(ApprovalTask.approval_task_id == task_id, ApprovalTask.tenant_id == principal.tenant_id).with_for_update(key_share=True)
     )
     if not task:
         raise HTTPException(404, detail={"code": "APPROVAL_TASK_NOT_FOUND"})
@@ -72,7 +72,7 @@ async def decide_approval(
         return task
     if task.status != "PENDING":
         raise HTTPException(409, detail={"code": "APPROVAL_ALREADY_DECIDED"})
-    case = await db.scalar(select(Case).where(Case.case_id == task.case_id, Case.tenant_id == principal.tenant_id).with_for_update())
+    case = await db.scalar(select(Case).where(Case.case_id == task.case_id, Case.tenant_id == principal.tenant_id).with_for_update(key_share=True))
     if not case:
         raise HTTPException(404, detail={"code": "CASE_NOT_FOUND"})
     if case.requester_user_id == principal.user_id and "admin" not in principal.roles:

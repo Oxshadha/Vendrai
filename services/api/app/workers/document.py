@@ -533,10 +533,10 @@ async def process_document_event(envelope: dict) -> None:
             await set_worker_tenant(session, str(tenant_id))
             if await session.get(InboxReceipt, {"consumer_name": "document-worker", "event_id": event_id}):
                 return
-            document = await session.scalar(select(Document).where(Document.document_id == document_id).with_for_update())
+            document = await session.scalar(select(Document).where(Document.document_id == document_id).with_for_update(key_share=True))
             if not document or document.tenant_id != tenant_id:
                 raise RuntimeError("DOCUMENT_NOT_FOUND_OR_TENANT_MISMATCH")
-            case = await session.scalar(select(Case).where(Case.case_id == document.case_id).with_for_update())
+            case = await session.scalar(select(Case).where(Case.case_id == document.case_id).with_for_update(key_share=True))
             case_was_draft = case.status == CaseStatus.DRAFT
             processing_started_at = datetime.now(UTC)
             processing_started = time.perf_counter()
