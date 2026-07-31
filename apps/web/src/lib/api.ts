@@ -463,6 +463,33 @@ function errorMessage(body: unknown, status: number): string {
   return `Request failed (${status})`;
 }
 
+/**
+ * Retry a call that failed for a transient reason.
+ *
+ * Uploading several documents to one case races the document worker for the
+ * same rows, and Postgres resolves the resulting deadlock by killing one
+ * transaction. That transaction rolls back after the handler has already
+ * produced its response, so the client is handed a document id whose row was
+ * never committed -- and the follow-up call then fails with a document that
+ * does not exist. Deadlocks are transient by definition: the survivor
+ * commits, so the retry succeeds.
+ */
+async function withRetry<T>(call: () => Promise<T>, attempts = 3): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await call();
+    } catch (error) {
+      lastError = error;
+      if (attempt === attempts) break;
+      // Short backoff: enough for the winning transaction to commit, not
+      // enough for the user to notice a pause.
+      await new Promise((resolve) => setTimeout(resolve, 150 * attempt));
+    }
+  }
+  throw lastError;
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = requestHeaders(init.headers);
   if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
@@ -657,11 +684,16 @@ export const api = {
       body: JSON.stringify({ invoice_number, document_id, document_ids: document_ids || [], priority, po_number, vendor_id }),
     }),
   initiateUpload: (caseId: string, file: File, documentType: string) =>
-    request<InitiatedUpload>(`/cases/${caseId}/documents:initiate`, {
-      method: "POST",
-      headers: { "Idempotency-Key": idempotencyKey("upload") },
-      body: JSON.stringify({ filename: file.name, content_type: file.type, size_bytes: file.size, document_type: documentType }),
-    }),
+    withRetry(() =>
+      request<InitiatedUpload>(`/cases/${caseId}/documents:initiate`, {
+        method: "POST",
+        // A fresh key per attempt on purpose: a deadlocked attempt rolls back
+        // its idempotency record along with everything else, so reusing the
+        // key would not deduplicate anything.
+        headers: { "Idempotency-Key": idempotencyKey("upload") },
+        body: JSON.stringify({ filename: file.name, content_type: file.type, size_bytes: file.size, document_type: documentType }),
+      }),
+    ),
   uploadContent: async (upload: InitiatedUpload, file: File) => {
     const url = upload.upload_url.startsWith("http") ? upload.upload_url : `${API_ORIGIN}${upload.upload_url}`;
     const response = await fetch(url, { method: "PUT", headers: requestHeaders(upload.required_headers), body: file });
@@ -669,9 +701,11 @@ export const api = {
     if (!response.ok) throw new Error(errorMessage(body, response.status));
     return body;
   },
-  completeUpload: (documentId: string) => request(`/documents/${documentId}:complete`, {
-    method: "POST", headers: { "Idempotency-Key": idempotencyKey("document") },
-  }),
+  completeUpload: (documentId: string) => withRetry(() =>
+    request(`/documents/${documentId}:complete`, {
+      method: "POST", headers: { "Idempotency-Key": idempotencyKey("document") },
+    }),
+  ),
   submitCase: (caseId: string, expectedVersion: number) => request<AcceptedAction>(`/cases/${caseId}:submit`, {
     method: "POST", headers: { "Idempotency-Key": idempotencyKey("submit"), "If-Match": String(expectedVersion) },
   }),
