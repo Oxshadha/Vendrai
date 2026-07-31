@@ -1,5 +1,6 @@
 import asyncio
 import re
+import shutil
 import socket
 import struct
 import tempfile
@@ -32,6 +33,10 @@ from app.models import (
     InboxReceipt,
 )
 from app.services.events import append_case_event, enqueue_event
+from app.services.redis_support import (
+    OCR_CAPABILITY_TTL_SECONDS,
+    publish_ocr_capability,
+)
 from app.services.risk import upsert_risk_finding
 from app.services.storage import (
     copy_local_clean_object,
@@ -39,6 +44,7 @@ from app.services.storage import (
     document_key,
     local_object_path,
     materialize_object,
+    object_exists,
     promote_clean_object,
 )
 from app.workers.common import consume
@@ -473,25 +479,48 @@ def process_stored_document(
 ) -> tuple[bool, str, list[tuple[int, str, dict[str, Any]]], str, str | None]:
     clean_key = document_key(str(tenant_id), str(document.document_id), document.mime_type)
 
-    def process(source: Path) -> tuple[bool, str, list[tuple[int, str, dict[str, Any]]], str]:
+    def process(source: Path, *, already_promoted: bool) -> tuple[bool, str, list[tuple[int, str, dict[str, Any]]], str]:
         clean, scan_result = scan_with_clamav(source)
         if not clean:
             delete_quarantined_object(document.storage_key)
             return False, scan_result, [], ""
         pages, parser_version = extract_document(source, document.mime_type)
-        if settings.STORAGE_BACKEND == "s3":
-            promote_clean_object(document.storage_key, clean_key, source)
-        else:
-            copy_local_clean_object(source, clean_key)
+        # Promotion already happened on an earlier attempt; repeating it would
+        # re-upload and then try to delete a quarantine object that is gone.
+        if not already_promoted:
+            if settings.STORAGE_BACKEND == "s3":
+                promote_clean_object(document.storage_key, clean_key, source)
+            else:
+                copy_local_clean_object(source, clean_key)
         return True, scan_result, pages, parser_version
 
     if settings.STORAGE_BACKEND == "s3":
         with tempfile.TemporaryDirectory(prefix="neurox-document-") as temporary:
             source = Path(temporary) / str(document.document_id)
-            materialize_object(settings.S3_QUARANTINE_BUCKET, document.storage_key, source)
-            clean, scan_result, pages, parser_version = process(source)
+            # Promotion moves the object out of quarantine and is not part of
+            # the database transaction that records the result. If anything
+            # after it failed -- extraction, the commit, publishing the event --
+            # the retry re-read quarantine, found nothing, and raised
+            # OBJECT_DOWNLOAD_FAILED forever: promoted, but never marked READY,
+            # so the document stuck at QUEUED/PENDING permanently.
+            #
+            # Resuming from the clean bucket makes the retry idempotent.
+            already_promoted = object_exists(settings.S3_DOCUMENT_BUCKET, clean_key)
+            materialize_object(
+                settings.S3_DOCUMENT_BUCKET if already_promoted else settings.S3_QUARANTINE_BUCKET,
+                clean_key if already_promoted else document.storage_key,
+                source,
+            )
+            clean, scan_result, pages, parser_version = process(
+                source, already_promoted=already_promoted
+            )
     else:
-        clean, scan_result, pages, parser_version = process(local_object_path(document.storage_key))
+        local_clean = local_object_path(clean_key)
+        already_promoted = local_clean.exists()
+        source = local_clean if already_promoted else local_object_path(document.storage_key)
+        clean, scan_result, pages, parser_version = process(
+            source, already_promoted=already_promoted
+        )
     return clean, scan_result, pages, parser_version, clean_key if clean else None
 
 
@@ -676,5 +705,29 @@ async def process_document_event(envelope: dict) -> None:
             session.add(InboxReceipt(consumer_name="document-worker", event_id=event_id, tenant_id=tenant_id))
 
 
+async def _report_ocr_capability() -> None:
+    """Re-announce whether this worker can actually OCR, until it stops.
+
+    The API cannot answer this by probing its own PATH -- OCR only ever runs
+    here. The report carries a TTL, so a worker that dies makes the capability
+    lapse rather than leaving a stale "available" behind.
+    """
+    while True:
+        await publish_ocr_capability(shutil.which("tesseract") is not None)
+        await asyncio.sleep(OCR_CAPABILITY_TTL_SECONDS // 2)
+
+
+async def _main() -> None:
+    reporter = asyncio.create_task(_report_ocr_capability())
+    try:
+        await consume(
+            "document-worker",
+            ["document.processing.requested.v1"],
+            process_document_event,
+        )
+    finally:
+        reporter.cancel()
+
+
 if __name__ == "__main__":
-    asyncio.run(consume("document-worker", ["document.processing.requested.v1"], process_document_event))
+    asyncio.run(_main())

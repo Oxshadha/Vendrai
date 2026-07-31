@@ -16,14 +16,14 @@ export default function ApprovalsDashboard() {
     description: "Decisions waiting on a person, version-checked and bound to the evidence that produced them.",
   });
   return (
-    <div className="min-h-full p-6 lg:p-12">
-      <header className="mb-10">
+    <div className="min-h-full p-4 sm:p-6 lg:p-12">
+      <header className="mb-8 lg:mb-10">
         <p className="mb-1 text-sm font-bold text-[var(--color-accent)]">Human control point</p>
-        <h1 className="font-display text-3xl font-bold">Approval queue</h1>
+        <h1 className="font-display text-2xl font-bold sm:text-3xl">Approval queue</h1>
         <p className="mt-2 text-[var(--color-muted)]">Decisions are version-checked, evidence-bound and protected by segregation of duties.</p>
       </header>
       {tasks.isError && <p role="alert" className="mb-6 rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-900">Unable to load approvals: {tasks.error.message}</p>}
-      <div {...queueAssistance} className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
+      <div {...queueAssistance} className="grid gap-4 sm:gap-5 lg:grid-cols-2 xl:grid-cols-3">
         {tasks.isLoading && <p aria-live="polite">Loading approval tasks…</p>}
         {!tasks.isLoading && (tasks.data ?? []).length === 0 && (
           <Card className="lg:col-span-2 xl:col-span-3">

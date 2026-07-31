@@ -1,5 +1,4 @@
 import asyncio
-import shutil
 import uuid
 from datetime import UTC, datetime
 from typing import Annotated, Any
@@ -25,6 +24,7 @@ from app.schemas import (
     SanctionsImportResponse,
 )
 from app.services.events import append_audit, enqueue_event
+from app.services.redis_support import read_ocr_capability
 from app.services.storage import probe_storage
 from app.workers.common import open_broker
 from app.workers.notification import probe_smtp
@@ -49,6 +49,24 @@ def _check(
         error_code=error_code,
         action=action,
         metadata=metadata or {},
+    )
+
+
+async def _ocr_check() -> IntegrationCheck:
+    """OCR availability as reported by the worker that performs it."""
+    available = await read_ocr_capability()
+    if available is True:
+        return _check("HEALTHY")
+    if available is False:
+        return _check(
+            "UNAVAILABLE",
+            error_code="TESSERACT_UNAVAILABLE",
+            action="Rebuild the document worker image; it is running without tesseract.",
+        )
+    return _check(
+        "DEGRADED",
+        error_code="OCR_CAPABILITY_UNREPORTED",
+        action="Start the document worker; no instance has reported in recently.",
     )
 
 
@@ -100,6 +118,7 @@ async def integration_health(db: Db, principal: CurrentPrincipal):
     await db.execute(text("SELECT 1"))
     (
         redis_check,
+        ocr_check,
         rabbit_check,
         qdrant_check,
         opa_check,
@@ -110,6 +129,7 @@ async def integration_health(db: Db, principal: CurrentPrincipal):
     ) = (
         await asyncio.gather(
             _redis_check(),
+            _ocr_check(),
             _rabbit_check(),
             _http_check(f"{settings.QDRANT_URL}/collections", "QDRANT_UNAVAILABLE"),
             _http_check(f"{settings.OPA_URL}/health", "OPA_UNAVAILABLE"),
@@ -165,10 +185,11 @@ async def integration_health(db: Db, principal: CurrentPrincipal):
         ),
         "qdrant": qdrant_check,
         "opa": opa_check,
-        "ocr": _check(
-            "HEALTHY" if shutil.which("tesseract") else "UNAVAILABLE",
-            error_code=None if shutil.which("tesseract") else "TESSERACT_UNAVAILABLE",
-        ),
+        # OCR runs in the document worker, not here. Probing this process's own
+        # PATH reported UNAVAILABLE on every healthy deployment, because the API
+        # image does not ship tesseract and has no reason to. The worker reports
+        # its own capability instead; a report that stops arriving expires.
+        "ocr": ocr_check,
         "gemini": _check(
             llm_status,
             error_code=str(llm.get("error_code")) if llm.get("error_code") else None,

@@ -53,8 +53,10 @@ export function NotificationBell() {
           </span>
         )}
       </Button>
+      {/* Clamped to the viewport: a fixed 20rem panel hung off a bell that
+          sits near the right edge overflowed the screen on phones. */}
       {showNotifications && (
-        <Card padding="sm" className="absolute right-0 z-30 mt-3 w-80">
+        <Card padding="sm" className="absolute right-0 z-30 mt-3 w-[min(20rem,calc(100vw-2rem))]">
           <h2 className="mb-3 font-bold">Notifications</h2>
           <div className="max-h-80 space-y-2 overflow-y-auto">
             {(notifications.data ?? []).length === 0 && (

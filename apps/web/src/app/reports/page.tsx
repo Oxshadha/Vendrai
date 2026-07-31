@@ -32,10 +32,10 @@ export default function ReportsPage() {
     download(`neurox-cases-${new Date().toISOString().slice(0, 10)}.csv`, csv, "text/csv;charset=utf-8");
   };
   return (
-    <div className="min-h-full p-6 lg:p-12">
-      <header className="mb-10"><p className="mb-1 text-sm font-bold text-[var(--color-accent)]">Controlled export</p><h1 className="font-display text-3xl font-bold">Operational reports</h1><p className="mt-2 text-[var(--color-muted)]">Exports contain only the case summary fields currently authorized in this view.</p></header>
+    <div className="min-h-full p-4 sm:p-6 lg:p-12">
+      <header className="mb-8 lg:mb-10"><p className="mb-1 text-sm font-bold text-[var(--color-accent)]">Controlled export</p><h1 className="font-display text-2xl font-bold sm:text-3xl">Operational reports</h1><p className="mt-2 text-[var(--color-muted)]">Exports contain only the case summary fields currently authorized in this view.</p></header>
       {cases.isError && <p role="alert" className="mb-6 rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-900">Unable to prepare reports: {cases.error.message}</p>}
-      <div {...exportsAssistance} className="grid max-w-4xl gap-8 md:grid-cols-2">
+      <div {...exportsAssistance} className="grid max-w-4xl gap-6 md:grid-cols-2 md:gap-8">
         <Card>
           <Sheet className="mb-5 h-8 w-8 text-emerald-700" />
           <h2 className="font-display text-xl font-bold">Case register (CSV)</h2>

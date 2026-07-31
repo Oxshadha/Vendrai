@@ -141,6 +141,43 @@ def store_private_artifact(
     target.write_bytes(payload)
 
 
+def object_exists(bucket: str, key: str) -> bool:
+    """Whether an object is present, without downloading it.
+
+    Lets the document worker tell "not yet processed" from "already promoted
+    on an earlier attempt", which is what makes its retry idempotent.
+    """
+    from botocore.exceptions import ClientError
+
+    try:
+        _s3_client().head_object(Bucket=bucket, Key=key)
+        return True
+    except ClientError:
+        return False
+
+
+def read_document_object(key: str) -> bytes:
+    """Fetch clean document bytes so the API can serve them itself.
+
+    Used instead of redirecting a browser to a presigned URL: that redirect is
+    cross-origin, which strips the Origin down to `null` and fails CORS, and it
+    hands out access that bypasses the caller's role checks.
+    """
+    if settings.STORAGE_BACKEND != "s3":
+        return local_object_path(key).read_bytes()
+    from botocore.exceptions import ClientError
+
+    try:
+        response = _s3_client().get_object(
+            Bucket=settings.S3_DOCUMENT_BUCKET, Key=key
+        )
+    except ClientError as error:
+        raise HTTPException(
+            409, detail={"code": "DOCUMENT_OBJECT_UNAVAILABLE"}
+        ) from error
+    return bytes(response["Body"].read())
+
+
 def read_private_artifact(key: str) -> bytes:
     """Read back an object written by ``store_private_artifact``.
 

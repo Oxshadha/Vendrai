@@ -123,13 +123,13 @@ export default function CaseDetail() {
   };
 
   return (
-    <div className="min-h-full p-6 lg:p-12">
-      <header className="mb-10 flex flex-col justify-between gap-6 xl:flex-row xl:items-center">
-        <div className="flex items-center gap-4">
-          <Link href="/"><Button variant="icon" aria-label="Back to dashboard"><ArrowLeft className="h-5 w-5" /></Button></Link>
-          <div>
+    <div className="min-h-full p-4 sm:p-6 lg:p-12">
+      <header className="mb-8 flex flex-col justify-between gap-4 lg:mb-10 xl:flex-row xl:items-center xl:gap-6">
+        <div className="flex items-start gap-3 sm:items-center sm:gap-4">
+          <Link href="/" className="shrink-0"><Button variant="icon" aria-label="Back to dashboard"><ArrowLeft className="h-5 w-5" /></Button></Link>
+          <div className="min-w-0">
             <p className="text-xs font-bold text-[var(--color-muted)]">{currentCase.case_number}</p>
-            <h1 className="font-display text-3xl font-bold">{currentCase.title}</h1>
+            <h1 className="font-display text-2xl font-bold break-words sm:text-3xl">{currentCase.title}</h1>
             <p className="mt-1 text-sm text-[var(--color-muted)]">Version {currentCase.current_version} · Updated {new Date(currentCase.updated_at).toLocaleString()}</p>
           </div>
         </div>
@@ -151,8 +151,8 @@ export default function CaseDetail() {
         </p>
       )}
 
-      <div className="grid gap-8 xl:grid-cols-[1.25fr_1fr]">
-        <div className="space-y-8">
+      <div className="grid gap-6 xl:grid-cols-[1.25fr_1fr] xl:gap-8">
+        <div className="space-y-6 xl:space-y-8">
           {runId && <AgentExecutionMap runId={runId} />}
           <CaseClarification caseId={caseId} caseVersion={currentCase.current_version} />
           <CaseDocumentReview caseId={caseId} caseVersion={currentCase.current_version} />
@@ -318,7 +318,7 @@ export default function CaseDetail() {
           )}
         </div>
 
-        <aside className="space-y-8">
+        <aside className="space-y-6 xl:space-y-8">
           <Card {...decisionAssistance}>
             <h2 className="font-display text-xl font-bold">Decision control</h2>
             {task ? (

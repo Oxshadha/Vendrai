@@ -25,6 +25,7 @@ import {
   YAxis,
 } from "recharts";
 import { api, type MetricKey, type MetricValue } from "@/lib/api";
+import { useIsNarrow } from "@/lib/use-media-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -58,6 +59,7 @@ function changeDisplay(metric: MetricValue): string {
 export default function AnalyticsPage() {
   const queryClient = useQueryClient();
   const [question, setQuestion] = useState("");
+  const narrow = useIsNarrow();
   const metricsAssistance = useAssistanceTarget<HTMLElement>({
     id: "analytics.metrics",
     title: "Governed metrics",
@@ -128,13 +130,13 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <div className="min-h-full p-6 lg:p-12">
-      <header className="mb-10 flex flex-col justify-between gap-5 xl:flex-row xl:items-end">
+    <div className="min-h-full p-4 sm:p-6 lg:p-12">
+      <header className="mb-8 flex flex-col justify-between gap-5 lg:mb-10 xl:flex-row xl:items-end">
         <div>
           <p className="mb-1 text-sm font-bold text-[var(--color-accent)]">
             Event-derived reporting
           </p>
-          <h1 className="font-display text-3xl font-bold">
+          <h1 className="font-display text-2xl font-bold sm:text-3xl">
             Fraud and operational analytics
           </h1>
           <p className="mt-2 max-w-3xl text-[var(--color-muted)]">
@@ -156,7 +158,7 @@ export default function AnalyticsPage() {
         </p>
       )}
 
-      <section {...metricsAssistance} className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      <section {...metricsAssistance} className="grid gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3">
         {(summary.data?.metrics ?? []).map((metric) => {
           const Icon = metricIcons[metric.key];
           return (
@@ -196,13 +198,13 @@ export default function AnalyticsPage() {
         })}
       </section>
 
-      <section {...trendsAssistance} className="mt-8 grid gap-8 xl:grid-cols-2">
+      <section {...trendsAssistance} className="mt-6 grid gap-6 sm:mt-8 xl:grid-cols-2 xl:gap-8">
         <Card>
           <h2 className="font-display text-xl font-bold">Invoice STP trend</h2>
           <p className="mt-1 text-sm text-[var(--color-muted)]">
             Completed without a human touch after submission.
           </p>
-          <div className="mt-6 h-72" aria-label="Invoice STP trend chart">
+          <div className="mt-6 h-60 sm:h-72" aria-label="Invoice STP trend chart">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={trendData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
@@ -227,15 +229,17 @@ export default function AnalyticsPage() {
           <p className="mt-1 text-sm text-[var(--color-muted)]">
             Persisted deterministic exception records, not model guesses.
           </p>
-          <div className="mt-6 h-72" aria-label="Exception distribution chart">
+          <div className="mt-6 h-60 sm:h-72" aria-label="Exception distribution chart">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={exceptionData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                 <XAxis type="number" allowDecimals={false} />
+                {/* The category axis is a fixed pixel width, so on a phone a
+                    120px gutter left almost nothing for the bars. */}
                 <YAxis
                   dataKey="name"
                   type="category"
-                  width={120}
+                  width={narrow ? 76 : 120}
                   tick={{ fontSize: 10 }}
                 />
                 <Tooltip />
@@ -247,7 +251,7 @@ export default function AnalyticsPage() {
         </Card>
       </section>
 
-      <section {...riskAssistance} className="mt-8 grid gap-8 xl:grid-cols-[1.2fr_1fr]">
+      <section {...riskAssistance} className="mt-6 grid gap-6 sm:mt-8 xl:grid-cols-[1.2fr_1fr] xl:gap-8">
         <Card>
           <div className="mb-5 flex items-center gap-3">
             <ShieldAlert className="h-6 w-6 text-[var(--color-accent)]" />

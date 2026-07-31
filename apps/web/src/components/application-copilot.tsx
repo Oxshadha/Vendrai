@@ -95,7 +95,7 @@ export function ApplicationCopilot() {
 
   return (
     <>
-      <div {...launcherAssistance} className="fixed bottom-20 right-5 z-40 md:bottom-7 md:right-7">
+      <div {...launcherAssistance} className="fixed bottom-5 right-4 z-40 md:bottom-7 md:right-7">
         <Button
           type="button"
           variant="primary"

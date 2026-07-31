@@ -74,8 +74,10 @@ export default function InvoiceIntake() {
   }
 
   return (
-    <div className="min-h-full p-6 lg:p-12">
-      <div className="grid max-w-[100rem] gap-8 xl:grid-cols-[20rem_minmax(0,1fr)]">
+    <div className="min-h-full p-4 sm:p-6 lg:p-12">
+      {/* Stacked on small screens the form comes first: the queue is reference
+          material, not the reason anyone opened this page. */}
+      <div className="grid max-w-[100rem] gap-6 lg:gap-8 xl:grid-cols-[20rem_minmax(0,1fr)]">
         <CaseQueuePanel
           caseType="INVOICE_EXCEPTION"
           title="Invoice exceptions"
@@ -83,18 +85,19 @@ export default function InvoiceIntake() {
           assistanceId="invoice.recent-cases"
           assistanceTitle="Previous invoice exceptions"
           assistanceDescription="Invoice exception work already in flight, filtered to this workflow only."
+          className="order-2 xl:order-none"
         />
 
-        <div>
-        <header className="mb-10">
+        <div className="order-1 xl:order-none">
+        <header className="mb-6 lg:mb-10">
           <p className="mb-1 text-sm font-bold text-[var(--color-accent)]">Accounts Payable</p>
-          <h1 className="font-display text-3xl font-bold">Process Invoice Exception</h1>
+          <h1 className="font-display text-2xl font-bold sm:text-3xl">Process Invoice Exception</h1>
           <p className="mt-2 text-[var(--color-muted)]">Upload an invoice to trigger 3-way matching and tolerance checks.</p>
         </header>
 
-        <form onSubmit={submit} className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
-        <Card {...intakeAssistance} className="space-y-8">
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={submit} className="grid gap-6 lg:grid-cols-[1.5fr_1fr] lg:gap-8">
+        <Card {...intakeAssistance} className="space-y-6 sm:space-y-8">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="invoiceNumber" className="mb-2 block text-sm font-bold">Invoice Number</label>
               <Input id="invoiceNumber" value={invoiceNumber} onChange={(event) => setInvoiceNumber(event.target.value)} placeholder="Example: INV-2023-100" required minLength={3} />

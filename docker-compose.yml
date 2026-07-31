@@ -146,6 +146,12 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD}
       MINIO_API_CORS_ALLOW_ORIGIN: ${WEB_ORIGIN:-http://localhost:3000}
+      # Required for SSE-S3. The API asks for ServerSideEncryption=AES256 on
+      # every private artifact -- audit exports, model artifacts -- and without
+      # a KMS key MinIO answers NotImplemented, so those writes failed outright.
+      # Encryption at rest is the point, so configure the key rather than drop
+      # the request.
+      MINIO_KMS_SECRET_KEY: ${MINIO_KMS_SECRET_KEY:?set MINIO_KMS_SECRET_KEY}
     volumes: [minio_data:/data]
     ports: ["127.0.0.1:9000:9000", "127.0.0.1:9001:9001"]
     healthcheck:

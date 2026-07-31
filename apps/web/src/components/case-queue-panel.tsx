@@ -25,6 +25,8 @@ export interface CaseQueuePanelProps {
   assistanceId: string;
   assistanceTitle: string;
   assistanceDescription: string;
+  /** Layout hooks from the page, e.g. stacking order at narrow widths. */
+  className?: string;
 }
 
 /**
@@ -42,6 +44,7 @@ export function CaseQueuePanel({
   assistanceId,
   assistanceTitle,
   assistanceDescription,
+  className,
 }: CaseQueuePanelProps) {
   const assistance = useAssistanceTarget({
     id: assistanceId,
@@ -94,8 +97,11 @@ export function CaseQueuePanel({
       {...assistance}
       padding="none"
       // `self-start` matters: a grid item stretches to the row height by
-      // default, which leaves sticky with nothing to move within.
-      className="flex max-h-[calc(100vh-7rem)] flex-col overflow-hidden xl:sticky xl:top-24 xl:self-start"
+      // default, which leaves sticky with nothing to move within. The height
+      // cap is xl-only: stacked above the form on a phone, a viewport-tall
+      // list with its own scroller is a wall between the user and the thing
+      // they came to do, so there it just sizes to its content.
+      className={`flex max-h-[32rem] flex-col overflow-hidden xl:sticky xl:top-24 xl:max-h-[calc(100vh-7rem)] xl:self-start ${className ?? ""}`}
     >
       <div className="shrink-0 border-b border-[var(--color-border)] p-5">
         <h2 className="font-display text-lg font-bold">{title}</h2>

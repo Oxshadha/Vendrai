@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -11,9 +11,11 @@ import {
   FileText,
   LayoutDashboard,
   LogOut,
+  Menu,
   Receipt,
   Settings,
   Users,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/app/providers";
 import { SegmentedControl } from "@/components/ui/segmented-control";
@@ -120,9 +122,31 @@ export function TopNav() {
     title: "Primary navigation",
     description: "Every area of the product. Items are filtered by the roles on your token.",
   });
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPathname, setMenuPathname] = useState(pathname);
+
+  // A route change is the successful outcome of using the sheet, so it also
+  // closes it -- otherwise the panel covers the page you just navigated to.
+  //
+  // Adjusted during render rather than in an effect: React re-runs this pass
+  // before touching the DOM, so the sheet never paints open on the new route,
+  // and it avoids the cascading render an effect-based setState causes.
+  if (menuPathname !== pathname) {
+    setMenuPathname(pathname);
+    setMenuOpen(false);
+  }
 
   const items = NAV_ITEMS.filter((item) => !item.roles || item.roles.some((role) => roles.has(role)));
   const active = items.find((item) => item.href === "/" ? pathname === "/" : pathname.startsWith(item.href))?.value ?? "/";
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [menuOpen]);
 
   return (
     /*
@@ -133,7 +157,7 @@ export function TopNav() {
      * translucent wash, saturation is what makes colours bloom through it.
      */
     <header className="sticky top-0 z-30 px-3 pt-3 md:px-6 md:pt-4">
-      <div className="mx-auto flex h-16 w-fit max-w-full items-center gap-3 rounded-full border border-white/70 bg-white/65 px-4 shadow-[0_8px_32px_rgba(17,24,39,0.10)] backdrop-blur-xl backdrop-saturate-150 md:px-5">
+      <div className="mx-auto flex h-14 w-fit max-w-full items-center gap-2 rounded-full border border-white/70 bg-white/65 px-3 shadow-[0_8px_32px_rgba(17,24,39,0.10)] backdrop-blur-xl backdrop-saturate-150 sm:h-16 sm:gap-3 sm:px-4 md:px-5">
         <Link
           href="/"
           className="flex shrink-0 items-center gap-2 rounded-full transition-opacity duration-200 hover:opacity-80"
@@ -156,25 +180,82 @@ export function TopNav() {
           />
         </Link>
 
-        <nav
-          {...navAssistance}
-          aria-label="Primary"
-          className="flex min-w-0 flex-1 gap-2 overflow-x-auto [scrollbar-width:none] md:flex-none md:overflow-visible [&::-webkit-scrollbar]:hidden"
-        >
-          <SegmentedControl
-            items={items}
-            value={active}
-            track="transparent"
-            className="snap-x"
-            itemClassName="snap-start"
-          />
-        </nav>
+        {/*
+          Three presentations of one nav, so the assistance target (and the
+          welcome tour step that points at it) stays mounted and visible at
+          every width: a sheet trigger on phones, icon-only pills on tablets,
+          and the full labelled control from xl up, where the labels fit
+          without pushing the pill past the viewport.
+        */}
+        <div {...navAssistance} className="flex min-w-0 flex-1 items-center justify-end md:justify-start">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((value) => !value)}
+            aria-label="Main menu"
+            aria-expanded={menuOpen}
+            aria-controls="primary-nav-sheet"
+            className="rounded-full p-2 text-[var(--color-ink)] transition-colors hover:bg-white/70 md:hidden"
+          >
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
 
-        <div className="flex shrink-0 items-center gap-2">
+          <nav
+            aria-label="Primary"
+            className="hidden min-w-0 flex-1 gap-2 overflow-x-auto [scrollbar-width:none] md:flex [&::-webkit-scrollbar]:hidden"
+          >
+            <SegmentedControl
+              items={items}
+              value={active}
+              track="transparent"
+              className="snap-x"
+              itemClassName="snap-start"
+              labelClassName="hidden xl:inline"
+            />
+          </nav>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <NotificationBell />
           <AvatarMenu />
         </div>
       </div>
+
+      {menuOpen && (
+        <>
+          <button
+            type="button"
+            aria-hidden="true"
+            tabIndex={-1}
+            className="fixed inset-0 z-20 cursor-default md:hidden"
+            onClick={() => setMenuOpen(false)}
+          />
+          <nav
+            id="primary-nav-sheet"
+            aria-label="Primary"
+            className="relative z-30 mx-auto mt-2 max-w-full rounded-3xl border border-white/70 bg-white/90 p-2 shadow-[0_12px_36px_rgba(17,24,39,0.14)] backdrop-blur-xl backdrop-saturate-150 md:hidden"
+          >
+            {items.map((item) => {
+              const isActive = item.value === active;
+              return (
+                <Link
+                  key={item.value}
+                  href={item.href}
+                  aria-current={isActive ? "page" : undefined}
+                  onClick={() => setMenuOpen(false)}
+                  className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition-colors ${
+                    isActive
+                      ? "bg-[var(--color-accent-light)] text-[var(--color-accent-dark)]"
+                      : "text-[var(--color-ink)] hover:bg-[var(--color-surface-muted)]"
+                  }`}
+                >
+                  <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </>
+      )}
     </header>
   );
 }

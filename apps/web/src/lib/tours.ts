@@ -76,13 +76,35 @@ export const TOURS: TourDefinition[] = [
         targetId: "dashboard.metrics",
         route: "/",
         title: "Today's load at a glance",
-        body: "Active work, decisions waiting on a human, and cases that are blocked. The small deltas compare this week against last.",
+        body: "Active work, decisions waiting on a human, cases that are blocked, and work nobody has claimed. The deltas compare this week against last.",
+      },
+      {
+        targetId: "dashboard.service-levels",
+        route: "/",
+        title: "How long is work waiting?",
+        body: "Counts tell you how much; these tell you how long. The oldest open case and anything past 48 hours are where a breach starts.",
+      },
+      {
+        targetId: "dashboard.performance",
+        route: "/",
+        title: "Outcomes you can defend",
+        body: "Straight-through processing, cycle times and exception rates, computed from workflow events rather than model output. Arrows read against each metric, so a rising cycle time is never shown as good news.",
+        roles: APPROVER_ROLES,
+        optional: true,
       },
       {
         targetId: "dashboard.volume",
         route: "/",
         title: "Is throughput holding up?",
         body: "Fourteen days of case volume, split into resolved same-day versus still in flight. A growing pale band means work is accumulating.",
+      },
+      {
+        targetId: "dashboard.backlog",
+        route: "/",
+        title: "Where the backlog is ageing",
+        body: "The approvals waiting on a person, bucketed by how long they have waited, with the open risk findings underneath.",
+        roles: APPROVER_ROLES,
+        optional: true,
       },
       {
         targetId: "copilot.launcher",
@@ -155,13 +177,27 @@ export const TOURS: TourDefinition[] = [
   {
     id: "dashboard.orientation",
     label: "Dashboard orientation",
-    summary: "The headline metrics, the volume chart and the assistant.",
+    summary: "The headline metrics, service levels, the volume chart and the assistant.",
     steps: [
       {
         targetId: "dashboard.metrics",
         route: "/",
         title: "Today's load at a glance",
-        body: "Active work, decisions waiting on a human, and cases that are blocked, each with a week-on-week delta.",
+        body: "Active work, decisions waiting on a human, blocked cases and unclaimed cases, each with a week-on-week delta.",
+      },
+      {
+        targetId: "dashboard.service-levels",
+        route: "/",
+        title: "How long is work waiting?",
+        body: "The oldest open case, anything ageing past 48 hours, the urgent load, and what has actually been resolved this week.",
+      },
+      {
+        targetId: "dashboard.performance",
+        route: "/",
+        title: "Outcomes you can defend",
+        body: "Straight-through processing, cycle times, activation and exception rates, all derived from immutable workflow events.",
+        roles: APPROVER_ROLES,
+        optional: true,
       },
       {
         targetId: "dashboard.volume",
