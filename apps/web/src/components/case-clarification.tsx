@@ -9,6 +9,41 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAssistanceTarget } from "@/components/assistance-registry";
 
+/**
+ * The generated contract type for a question is `{ [key: string]: unknown }`,
+ * so nothing caught the frontend reading `field_name`/`text` while the backend
+ * (`domain/clarification.py`, `as_dict`) has always emitted `field`/`question`.
+ * Both reads were `undefined`, which is why every prompt rendered as the
+ * meaningless "Provide answer-0" and the submit button never appeared.
+ *
+ * The older names are still accepted so a mixed-version API cannot regress this.
+ */
+interface Question {
+  field: string;
+  prompt: string;
+  reason: string | undefined;
+}
+
+function str(source: Record<string, unknown>, ...keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === "string" && value.trim()) return value;
+  }
+  return undefined;
+}
+
+function asQuestion(raw: Record<string, unknown>, index: number): Question {
+  const field = str(raw, "field", "field_name") ?? `answer-${index}`;
+  return {
+    field,
+    prompt: str(raw, "question", "text") ?? `Provide ${field.replaceAll("_", " ")}`,
+    reason: str(raw, "reason_code")?.toLowerCase().replaceAll("_", " "),
+  };
+}
+
+/** Fields that hold tabular or multi-line content need room to type. */
+const LONG_FORM = new Set(["line_items", "notes", "justification", "description"]);
+
 export function CaseClarification({
   caseId,
   caseVersion,
@@ -46,9 +81,8 @@ export function CaseClarification({
     },
   });
   if (!task) return null;
-  const answerable = task.questions.filter(
-    (question) => question.field_name && question.field_name !== "document",
-  );
+  const questions = task.questions.map(asQuestion);
+  const answerable = questions.filter((question) => question.field && question.field !== "document");
 
   return (
     <Card {...assistance} tint="warning">
@@ -62,29 +96,40 @@ export function CaseClarification({
         </div>
       </div>
       <div className="space-y-4">
-        {task.questions.map((question, index) => {
-          const key = question.field_name ?? question.question_id ?? `answer-${index}`;
-          return (
-            <div key={question.question_id ?? `${key}-${index}`}>
-              <label htmlFor={`clarification-${key}`} className="mb-2 block text-sm font-bold">
-                {question.text ?? `Provide ${key.replaceAll("_", " ")}`}
-              </label>
-              {question.field_name === "document" ? (
-                <p className="rounded-xl bg-white p-3 text-sm">
-                  Upload the requested document from the intake flow, then resubmit.
-                </p>
-              ) : (
-                <Input
-                  id={`clarification-${key}`}
-                  value={answers[key] ?? ""}
-                  onChange={(event) =>
-                    setAnswers((current) => ({ ...current, [key]: event.target.value }))
-                  }
-                />
-              )}
-            </div>
-          );
-        })}
+        {questions.map((question, index) => (
+          <div key={`${question.field}-${index}`}>
+            <label htmlFor={`clarification-${question.field}`} className="mb-1 block text-sm font-bold">
+              {question.prompt}
+            </label>
+            {question.reason && (
+              <p className="mb-2 text-xs text-amber-900/70">Reason: {question.reason}</p>
+            )}
+            {question.field === "document" ? (
+              <p className="rounded-xl bg-white p-3 text-sm">
+                Upload the requested document from the intake flow, then resubmit.
+              </p>
+            ) : LONG_FORM.has(question.field) ? (
+              <textarea
+                id={`clarification-${question.field}`}
+                rows={4}
+                placeholder="One row per line, e.g. 12 x Widget A @ 45.00"
+                value={answers[question.field] ?? ""}
+                onChange={(event) =>
+                  setAnswers((current) => ({ ...current, [question.field]: event.target.value }))
+                }
+                className="w-full rounded-xl border border-[var(--color-border-strong)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/40"
+              />
+            ) : (
+              <Input
+                id={`clarification-${question.field}`}
+                value={answers[question.field] ?? ""}
+                onChange={(event) =>
+                  setAnswers((current) => ({ ...current, [question.field]: event.target.value }))
+                }
+              />
+            )}
+          </div>
+        ))}
       </div>
       {respond.isError && (
         <p role="alert" className="mt-4 text-sm text-rose-900">
@@ -98,12 +143,7 @@ export function CaseClarification({
           className="mt-5 gap-2"
           disabled={
             respond.isPending
-            || answerable.some(
-              (question, index) =>
-                !answers[
-                  question.field_name ?? question.question_id ?? `answer-${index}`
-                ]?.trim(),
-            )
+            || answerable.some((question) => !answers[question.field]?.trim())
           }
           onClick={() => respond.mutate()}
         >
