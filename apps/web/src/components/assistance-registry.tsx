@@ -81,6 +81,12 @@ export function AssistanceProvider({
   const spotlighted = useRef<{
     element: HTMLElement;
     previousTabIndex: string | null;
+    /**
+     * The inline `position` we overwrote, and whether we touched it at all.
+     * Only statically positioned targets get one -- see `spotlight`.
+     */
+    previousInlinePosition: string;
+    positionPatched: boolean;
   } | null>(null);
   const spotlightTimer = useRef<number | null>(null);
   /** Notified on every registration so `waitFor` can settle without polling. */
@@ -94,6 +100,9 @@ export function AssistanceProvider({
     const current = spotlighted.current;
     if (!current) return;
     current.element.classList.remove("copilot-spotlight");
+    if (current.positionPatched) {
+      current.element.style.position = current.previousInlinePosition;
+    }
     if (current.previousTabIndex === null) {
       current.element.removeAttribute("tabindex");
     } else {
@@ -190,6 +199,17 @@ export function AssistanceProvider({
       if (previousTabIndex === null) {
         target.element.setAttribute("tabindex", "-1");
       }
+      /*
+       * The z-index that lifts the target above the scrim only applies to a
+       * positioned element, so a statically positioned one needs `relative`.
+       * Anything already positioned must be left alone: forcing `relative`
+       * onto the `fixed` copilot launcher tore it off its bottom-right anchor
+       * and dumped it into normal flow at the left of the page.
+       */
+      const previousInlinePosition = target.element.style.position;
+      const positionPatched =
+        window.getComputedStyle(target.element).position === "static";
+      if (positionPatched) target.element.style.position = "relative";
       target.element.classList.add("copilot-spotlight");
       target.element.scrollIntoView({
         behavior: "smooth",
@@ -199,6 +219,8 @@ export function AssistanceProvider({
       spotlighted.current = {
         element: target.element,
         previousTabIndex,
+        previousInlinePosition,
+        positionPatched,
       };
       const autoClearMs =
         options?.autoClearMs === undefined

@@ -1,8 +1,15 @@
 import * as React from "react"
 
+/**
+ * `min-w-max` alongside `w-full` is what makes these tables survive a phone:
+ * width:100% alone lets a seven-column row squash until every cell wraps to
+ * one character per line. Holding the natural content width instead pushes
+ * the overflow onto the wrapper's `overflow-x-auto`, so the row scrolls
+ * sideways and stays readable. Every call site already provides that wrapper.
+ */
 const Table = React.forwardRef<HTMLTableElement, React.TableHTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
-    <table ref={ref} className={`w-full border-collapse text-sm ${className ?? ""}`} {...props} />
+    <table ref={ref} className={`w-full min-w-max border-collapse text-sm ${className ?? ""}`} {...props} />
   )
 );
 Table.displayName = "Table";

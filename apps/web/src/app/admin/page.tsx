@@ -41,12 +41,12 @@ export default function AdminIntegrations() {
   });
 
   return (
-    <div className="min-h-full p-6 lg:p-12">
-      <header className="mb-10">
+    <div className="min-h-full p-4 sm:p-6 lg:p-12">
+      <header className="mb-8 lg:mb-10">
         <p className="mb-1 text-sm font-bold text-[var(--color-accent)]">
           Administrator control plane
         </p>
-        <h1 className="font-display text-3xl font-bold">Integration health</h1>
+        <h1 className="font-display text-2xl font-bold sm:text-3xl">Integration health</h1>
         <p className="mt-2 text-[var(--color-muted)]">
           Credential-free readiness, retry guidance, and sanctions provenance.
         </p>
@@ -56,7 +56,7 @@ export default function AdminIntegrations() {
           Health data is unavailable or your role is not authorized.
         </p>
       )}
-      <section {...integrationsAssistance} className="grid gap-5 md:grid-cols-2 xl:grid-cols-3" aria-label="Integration status">
+      <section {...integrationsAssistance} className="grid gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-3" aria-label="Integration status">
         {Object.entries(health.data?.checks ?? {}).map(([name, check]) => (
           <Card key={name}>
             <div className="flex items-center justify-between gap-3">

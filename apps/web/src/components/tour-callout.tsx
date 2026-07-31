@@ -1,16 +1,40 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, LoaderCircle } from "lucide-react";
 
 import { useTargetRect } from "@/components/spotlight-overlay";
 
-const PADDING = 8;
+const PADDING = 12;
 const GAP = 14;
 const CALLOUT_WIDTH = 380;
-const ESTIMATED_HEIGHT = 215;
+/** Only used for the first frame, before the bubble has been measured. */
+const FALLBACK_HEIGHT = 215;
+/** Below this the bubble becomes an edge-pinned sheet rather than a pointer. */
+const SHEET_BREAKPOINT = 640;
+
+/** Viewport size, re-read on resize and rotation. */
+function useViewport() {
+  const [size, setSize] = useState(() => ({
+    width: typeof window === "undefined" ? 1280 : window.innerWidth,
+    height: typeof window === "undefined" ? 800 : window.innerHeight,
+  }));
+
+  useEffect(() => {
+    const onResize = () => setSize({ width: window.innerWidth, height: window.innerHeight });
+    onResize();
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
+    };
+  }, []);
+
+  return size;
+}
 
 export interface TourCalloutProps {
   target: HTMLElement | undefined;
@@ -42,6 +66,24 @@ export function TourCallout({
 }: TourCalloutProps) {
   const rect = useTargetRect(target);
   const reduceMotion = useReducedMotion();
+  const viewport = useViewport();
+  const calloutRef = useRef<HTMLElement | null>(null);
+  /*
+   * Measured, not estimated. A fixed guess was roughly right on desktop and
+   * badly wrong on a phone, where the same copy wraps to twice the height --
+   * so the bubble was placed as if it were short and ran off the screen.
+   */
+  const [height, setHeight] = useState(FALLBACK_HEIGHT);
+
+  useLayoutEffect(() => {
+    const node = calloutRef.current;
+    if (!node) return;
+    setHeight(node.offsetHeight);
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => setHeight(node.offsetHeight));
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -54,38 +96,53 @@ export function TourCallout({
   }, [onSkip, onNext, onBack]);
 
   const isLast = index === total - 1;
-  const viewportWidth = typeof window === "undefined" ? 1280 : window.innerWidth;
-  const viewportHeight = typeof window === "undefined" ? 800 : window.innerHeight;
-  const width = Math.min(CALLOUT_WIDTH, viewportWidth - 2 * PADDING);
+  const compact = viewport.width < SHEET_BREAKPOINT;
+  const width = Math.min(CALLOUT_WIDTH, viewport.width - 2 * PADDING);
+  const maxHeight = viewport.height - 2 * PADDING;
+  /** Which half of the screen the target sits in, used to pick the far edge. */
+  const targetInLowerHalf = rect
+    ? rect.top + rect.height / 2 > viewport.height / 2
+    : true;
 
-  // Prefer below the target, flip above when it would overflow, and pin to the
-  // bottom when there is no rect to anchor against.
   let top: number;
   let left: number;
-  if (!rect) {
-    top = viewportHeight - ESTIMATED_HEIGHT - 16;
-    left = viewportWidth / 2 - width / 2;
+  if (compact) {
+    // Phones: a full-width sheet pinned to the edge furthest from the target,
+    // so the bubble never covers the thing it is describing.
+    left = (viewport.width - width) / 2;
+    top = targetInLowerHalf ? PADDING : viewport.height - height - PADDING;
+  } else if (!rect) {
+    top = viewport.height - height - PADDING;
+    left = viewport.width / 2 - width / 2;
   } else {
+    // Prefer below the target, flip above when it would overflow, and fall
+    // back to the far edge rather than always the bottom -- the old bottom
+    // pin buried low targets underneath their own callout.
     const below = rect.top + rect.height + GAP;
-    const above = rect.top - GAP - ESTIMATED_HEIGHT;
+    const above = rect.top - GAP - height;
     top =
-      below + ESTIMATED_HEIGHT <= viewportHeight - PADDING
+      below + height <= viewport.height - PADDING
         ? below
         : above >= PADDING
           ? above
-          : Math.max(PADDING, viewportHeight - ESTIMATED_HEIGHT - PADDING);
+          : targetInLowerHalf
+            ? PADDING
+            : viewport.height - height - PADDING;
     left = Math.min(
       Math.max(PADDING, rect.left + rect.width / 2 - width / 2),
-      viewportWidth - width - PADDING,
+      viewport.width - width - PADDING,
     );
   }
+  top = Math.max(PADDING, top);
 
   return createPortal(
     <motion.aside
+      ref={calloutRef}
       role="dialog"
       aria-label="Guided tour"
       aria-live="polite"
-      className="fixed z-[70] rounded-2xl bg-[var(--color-ink)] p-5 text-white shadow-[var(--shadow-xl)]"
+      className="fixed z-[70] overflow-y-auto overscroll-contain rounded-2xl bg-[var(--color-ink)] p-4 text-white shadow-[var(--shadow-xl)] sm:p-5"
+      style={{ maxHeight }}
       initial={reduceMotion ? false : { opacity: 0, scale: 0.96, top, left, width }}
       animate={{ opacity: 1, scale: 1, top, left, width }}
       transition={
@@ -129,7 +186,7 @@ export function TourCallout({
         <p className="mt-1 text-sm leading-relaxed text-white/70">{body}</p>
       </motion.div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
         <button
           type="button"
           className="rounded-xl px-3 py-2 text-sm text-white/60 transition-colors hover:bg-white/10 hover:text-white"

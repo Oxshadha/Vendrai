@@ -4,8 +4,8 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
+from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -39,9 +39,9 @@ from app.services.storage import (
     inspect_quarantined_object,
     issue_upload_token,
     local_object_path,
-    presigned_download_url,
     presigned_upload_url,
     quarantine_key,
+    read_document_object,
     sanitize_filename,
     stream_to_quarantine,
     validate_upload_request,
@@ -352,17 +352,40 @@ async def list_document_fields(
     )
 
 
-@router.get("/documents/{document_id}/content", response_class=RedirectResponse)
+@router.get("/documents/{document_id}/content")
 async def get_document_content(document_id: uuid.UUID, db: Db, principal: CurrentPrincipal):
+    """Stream authorized document bytes.
+
+    Deliberately streams rather than redirecting to a presigned object-store
+    URL, for two reasons:
+
+    1. **It was unreadable in a browser.** A cross-origin redirect makes the
+       browser send `Origin: null` on the followed request, so the object
+       store's origin allowlist never matched and every fetch failed CORS. The
+       viewer showed nothing.
+    2. **A presigned URL is an unauthenticated capability.** Once issued it
+       grants anyone holding it access to the document for its lifetime, with
+       none of the role and tenant checks applied above. Keeping the bytes
+       behind this endpoint keeps the authorization decision here.
+    """
     principal.require_any(*CASE_READ_ROLES)
     document, _ = await _authorized_document(db, principal, document_id)
     if document.processing_status != "READY" or not document.storage_key.startswith("documents/"):
         raise HTTPException(409, detail={"code": "DOCUMENT_NOT_READY"})
+
+    headers = {
+        "Cache-Control": "no-store",
+        "Content-Disposition": f'inline; filename="{document.sanitized_filename}"',
+        # These are untrusted uploads; stop a browser sniffing them into
+        # something executable.
+        "X-Content-Type-Options": "nosniff",
+    }
     if settings.STORAGE_BACKEND == "s3":
-        return RedirectResponse(
-            presigned_download_url(document.storage_key, document.sanitized_filename),
-            status_code=307,
-            headers={"Cache-Control": "no-store"},
+        payload = await asyncio.to_thread(read_document_object, document.storage_key)
+        return Response(
+            content=payload,
+            media_type=document.mime_type,
+            headers=headers,
         )
     return FileResponse(
         local_object_path(document.storage_key),

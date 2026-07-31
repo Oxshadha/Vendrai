@@ -23,6 +23,62 @@ class RedisVersionUnsupported(RuntimeError):
     """Raised when the configured Redis cannot serve the commands we rely on."""
 
 
+#: Key the document worker publishes its OCR capability under, and the TTL that
+#: makes the report self-expiring. A worker that dies stops refreshing the key,
+#: so the reading side sees the capability disappear rather than a stale "yes".
+OCR_CAPABILITY_KEY = "vendrai:capability:ocr"
+OCR_CAPABILITY_TTL_SECONDS = 120
+
+
+async def publish_ocr_capability(available: bool) -> None:
+    """Announce whether OCR is usable, from the process that actually runs it.
+
+    OCR executes in the document worker, so the API cannot answer this by
+    probing its own PATH -- it does not ship the binary and never will. The
+    worker reports instead, and the API reads the report.
+    """
+    from redis.asyncio import Redis
+
+    client = Redis.from_url(
+        settings.REDIS_URL, socket_connect_timeout=2, socket_timeout=2
+    )
+    try:
+        await client.set(
+            OCR_CAPABILITY_KEY,
+            "1" if available else "0",
+            ex=OCR_CAPABILITY_TTL_SECONDS,
+        )
+    except Exception:
+        # A capability report is not worth failing document processing over.
+        pass
+    finally:
+        await client.aclose()
+
+
+async def read_ocr_capability() -> bool | None:
+    """OCR availability as last reported, or None when nothing has reported.
+
+    None is distinct from False: it means no document worker has checked in
+    recently, which is a different fault from a worker that is running without
+    the binary.
+    """
+    from redis.asyncio import Redis
+
+    client = Redis.from_url(
+        settings.REDIS_URL, socket_connect_timeout=2, socket_timeout=2
+    )
+    try:
+        raw = await client.get(OCR_CAPABILITY_KEY)
+    except Exception:
+        return None
+    finally:
+        await client.aclose()
+    if raw is None:
+        return None
+    value = raw.decode() if isinstance(raw, bytes) else str(raw)
+    return value == "1"
+
+
 def parse_redis_version(raw: str) -> tuple[int, ...]:
     """Parse ``redis_version`` into a comparable tuple.
 

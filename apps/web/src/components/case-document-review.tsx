@@ -138,7 +138,7 @@ export function CaseDocumentReview({
                 <iframe
                   src={objectUrl}
                   title={`Source document ${selected.original_filename}`}
-                  className="h-[36rem] w-full rounded-xl border border-[var(--color-border)] bg-white"
+                  className="h-[26rem] w-full rounded-xl border border-[var(--color-border)] bg-white sm:h-[36rem]"
                 />
               ) : (
                 <div className="grid h-64 place-items-center rounded-xl bg-[var(--color-surface-muted)] text-sm text-[var(--color-muted)]">

@@ -99,6 +99,19 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* iOS Safari zooms the whole viewport when a focused control's text is under
+ * 16px, and does not zoom back out -- so a `text-sm` textarea leaves the user
+ * stranded, magnified, inside the form they were filling in. Raising the
+ * controls to 16px on phone widths is what actually prevents it; the rule is
+ * unlayered so it outranks the Tailwind size utilities on those elements. */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 /* Signature gradient as a text fill. Reserved for one emphasised word per
  * headline -- the lighter endpoint only clears AA at display sizes. */
 .gradient-text {
@@ -118,9 +131,15 @@ button:disabled {
 /* Lifts the spotlit element above the tour scrim. The dimming and the ring are
  * drawn by TourCallout in a portal rather than by a huge spread shadow here:
  * that shadow was clipped by any ancestor with overflow:hidden, so the dim
- * broke on cards that scroll their own content. */
+ * broke on cards that scroll their own content.
+ *
+ * `position` is deliberately *not* set here. z-index needs a positioned
+ * element, but a blanket `position: relative` also overwrote `fixed` on the
+ * copilot launcher, dropping it out of its viewport anchor and into normal
+ * flow -- which is why spotlighting it threw the button to the left of the
+ * page. AssistanceProvider now sets `relative` inline, and only on targets
+ * that are actually statically positioned. */
 .copilot-spotlight {
-  position: relative;
   z-index: 62;
   border-radius: 16px;
 }

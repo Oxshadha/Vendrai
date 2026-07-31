@@ -23,6 +23,12 @@ export interface SegmentedControlProps {
   track?: 'muted' | 'transparent';
   className?: string;
   itemClassName?: string;
+  /**
+   * Applied to the label text only, so a caller can hide it at narrow widths
+   * and leave icon-only pills behind. The accessible name is carried by
+   * `aria-label` on every item, so hiding the text costs nothing.
+   */
+  labelClassName?: string;
 }
 
 /**
@@ -32,7 +38,7 @@ export interface SegmentedControlProps {
  * `role="tablist"` preserves the same aria-selected semantics a manually
  * hand-rolled tablist would have.
  */
-function SegmentedControl({ items, value, onChange, role, track = 'muted', className, itemClassName, ...rest }: SegmentedControlProps) {
+function SegmentedControl({ items, value, onChange, role, track = 'muted', className, itemClassName, labelClassName, ...rest }: SegmentedControlProps) {
   return (
     <div
       role={role}
@@ -43,11 +49,11 @@ function SegmentedControl({ items, value, onChange, role, track = 'muted', class
         const active = item.value === value;
         const content = (
           <>
-            {item.icon && <item.icon aria-hidden="true" className="h-4 w-4" />}
-            {item.label}
+            {item.icon && <item.icon aria-hidden="true" className="h-4 w-4 shrink-0" />}
+            <span className={labelClassName}>{item.label}</span>
           </>
         );
-        const classes = `inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold transition-all duration-200 ${
+        const classes = `inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-sm font-bold transition-all duration-200 sm:px-4 ${
           active
             ? "border border-[var(--color-border)] bg-white text-[var(--color-ink)] shadow-[var(--shadow-xs)]"
             : "border border-transparent text-[var(--color-muted)] hover:bg-white/60 hover:text-[var(--color-ink)]"
@@ -55,7 +61,14 @@ function SegmentedControl({ items, value, onChange, role, track = 'muted', class
 
         if (item.href) {
           return (
-            <Link key={item.value} href={item.href} className={classes}>
+            <Link
+              key={item.value}
+              href={item.href}
+              aria-label={item.label}
+              title={item.label}
+              aria-current={active ? "page" : undefined}
+              className={classes}
+            >
               {content}
             </Link>
           );
@@ -66,6 +79,8 @@ function SegmentedControl({ items, value, onChange, role, track = 'muted', class
             type="button"
             role={role === 'tablist' ? 'tab' : undefined}
             aria-selected={role === 'tablist' ? active : undefined}
+            aria-label={item.label}
+            title={item.label}
             className={classes}
             onClick={() => onChange?.(item.value)}
           >
