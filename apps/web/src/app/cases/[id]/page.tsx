@@ -4,12 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, FileSearch, ShieldAlert, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronRight, FileSearch, ShieldAlert, XCircle } from "lucide-react";
 import { api, type ApprovalTask } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { JsonViewer } from "@/components/ui/json-viewer";
+import { describeCaseEvent, eventTitle } from "@/lib/case-events";
 import { Table, Thead, Th, Tr, Td } from "@/components/ui/table";
 import { StatusChip } from "@/components/status-chip";
 import { CaseClarification } from "@/components/case-clarification";
@@ -158,13 +159,37 @@ export default function CaseDetail() {
           <CaseDocumentReview caseId={caseId} caseVersion={currentCase.current_version} />
           <Card {...eventsAssistance}>
             <div className="mb-6 flex items-center gap-3"><FileSearch className="h-6 w-6 text-[var(--color-accent)]" /><h2 className="font-display text-xl font-bold">Observable workflow events</h2></div>
-            <ol className="space-y-5">
-              {(events.data ?? []).map((event) => (
+            {/* Summary first, payload on request. The trail has to stay
+                auditable, but rendering every payload as JSON turned a normal
+                case into a wall of UUIDs. */}
+            <ol className="space-y-1">
+              {(events.data ?? []).map((event, index, all) => (
                 <li key={event.event_id} className="grid grid-cols-[auto_1fr] gap-4">
-                  <div className="mt-1 h-3 w-3 rounded-full bg-[var(--color-accent)]" aria-hidden="true" />
-                  <div>
-                    <div className="flex flex-wrap items-center justify-between gap-2"><span className="font-bold">{event.event_type.replaceAll("_", " ")}</span><time className="text-xs text-[var(--color-muted)]">{new Date(event.created_at).toLocaleString()}</time></div>
-                    {Object.keys(event.payload).length > 0 && <div className="mt-2"><JsonViewer data={event.payload} /></div>}
+                  <div className="flex flex-col items-center" aria-hidden="true">
+                    <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--color-accent)]" />
+                    {index < all.length - 1 && <div className="w-px flex-1 bg-[var(--color-border)]" />}
+                  </div>
+                  <div className="pb-5">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <span className="font-bold">{eventTitle(event.event_type)}</span>
+                      <time className="font-mono text-[11px] text-[var(--color-muted)]">
+                        {new Date(event.created_at).toLocaleString()}
+                      </time>
+                    </div>
+                    {describeCaseEvent(event) && (
+                      <p className="mt-1 text-sm leading-relaxed text-[var(--color-muted)]">
+                        {describeCaseEvent(event)}
+                      </p>
+                    )}
+                    {Object.keys(event.payload).length > 0 && (
+                      <details className="mt-2 group">
+                        <summary className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-medium text-[var(--color-muted)] transition-colors hover:text-[var(--color-accent)]">
+                          <ChevronRight className="h-3 w-3 transition-transform group-open:rotate-90" aria-hidden="true" />
+                          Payload
+                        </summary>
+                        <div className="mt-2"><JsonViewer data={event.payload} /></div>
+                      </details>
+                    )}
                   </div>
                 </li>
               ))}
