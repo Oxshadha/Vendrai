@@ -19,6 +19,17 @@ async def append_case_event(
     actor_id: str | None,
     payload: dict[str, Any],
 ) -> CaseEvent:
+    # Serializes the read-max-then-insert below, which would otherwise race two
+    # writers onto the same `sequence`.
+    #
+    # Callers must lock rows with FOR NO KEY UPDATE, never FOR UPDATE. Inserting
+    # a case_events row makes Postgres take FOR KEY SHARE on the parent `cases`
+    # row for the foreign key check, and FOR UPDATE conflicts with that. A
+    # caller holding FOR UPDATE on the case then waiting here, while the holder
+    # of this lock waits on that row's FK check, is a deadlock -- which is
+    # exactly what stalled the agent worker. FOR NO KEY UPDATE still excludes
+    # other writers (nothing here ever mutates a primary key), so the version
+    # checks are unaffected; it just stops blocking the FK reference.
     if db.bind and db.bind.dialect.name == "postgresql":
         await db.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"), {"key": f"case-event:{case_id}"})
     sequence = await db.scalar(select(func.coalesce(func.max(CaseEvent.sequence), 0) + 1).where(CaseEvent.case_id == case_id))

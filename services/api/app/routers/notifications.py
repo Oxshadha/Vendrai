@@ -39,7 +39,7 @@ async def mark_read(
         Notification.notification_id == notification_id,
         Notification.tenant_id == principal.tenant_id,
         (Notification.user_id == principal.user_id) | (Notification.user_id.is_(None)),
-    ).with_for_update())
+    ).with_for_update(key_share=True))
     if not notification:
         raise HTTPException(404, detail={"code": "NOTIFICATION_NOT_FOUND"})
     notification.status = "READ"

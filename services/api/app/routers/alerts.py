@@ -87,7 +87,7 @@ async def update_alert_rule(
             AlertRule.alert_rule_id == alert_rule_id,
             AlertRule.tenant_id == principal.tenant_id,
         )
-        .with_for_update()
+        .with_for_update(key_share=True)
     )
     if not rule:
         raise HTTPException(404, detail={"code": "ALERT_RULE_NOT_FOUND"})
@@ -143,7 +143,7 @@ async def acknowledge_alert(
             AlertInstance.alert_instance_id == alert_instance_id,
             AlertInstance.tenant_id == principal.tenant_id,
         )
-        .with_for_update()
+        .with_for_update(key_share=True)
     )
     if not alert:
         raise HTTPException(404, detail={"code": "ALERT_NOT_FOUND"})

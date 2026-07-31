@@ -67,7 +67,7 @@ async def process_import(envelope: dict) -> None:
             job = await session.scalar(
                 select(SanctionsImport)
                 .where(SanctionsImport.sanctions_import_id == import_id)
-                .with_for_update()
+                .with_for_update(key_share=True)
             )
             if not job or job.tenant_id != tenant_id:
                 raise RuntimeError("SANCTIONS_IMPORT_NOT_FOUND")
@@ -87,7 +87,7 @@ async def process_import(envelope: dict) -> None:
                 job = await session.scalar(
                     select(SanctionsImport)
                     .where(SanctionsImport.sanctions_import_id == import_id)
-                    .with_for_update()
+                    .with_for_update(key_share=True)
                 )
                 existing = await session.scalar(
                     select(SanctionsDataset).where(
@@ -159,7 +159,7 @@ async def process_import(envelope: dict) -> None:
                 job = await session.scalar(
                     select(SanctionsImport)
                     .where(SanctionsImport.sanctions_import_id == import_id)
-                    .with_for_update()
+                    .with_for_update(key_share=True)
                 )
                 if job:
                     job.status = "FAILED"

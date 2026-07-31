@@ -159,7 +159,7 @@ async def create_audit_export(
             Case.case_id == case_id,
             Case.tenant_id == principal.tenant_id,
         )
-        .with_for_update()
+        .with_for_update(key_share=True)
     )
     if not case:
         raise HTTPException(404, detail={"code": "CASE_NOT_FOUND"})
