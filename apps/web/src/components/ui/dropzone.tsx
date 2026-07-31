@@ -3,6 +3,18 @@
 import * as React from "react"
 import { FileCheck2, UploadCloud } from "lucide-react"
 
+/**
+ * Size in the unit that actually carries information at that magnitude.
+ *
+ * Everything was rendered as MB to two places, so a 3 KB document read as
+ * "0.00 MB" -- indistinguishable from an empty file to anyone glancing at it.
+ */
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+}
+
 export interface DropzoneProps {
   id: string;
   label: string;
@@ -58,7 +70,7 @@ function Dropzone({ id, label, accept, multiple = true, files, onFilesChange, hi
         {files.map((file) => (
           <li key={`${file.name}-${file.size}`} className="flex items-center gap-2 text-sm">
             <FileCheck2 className="h-4 w-4 text-emerald-600" aria-hidden="true" />
-            {file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB
+            {file.name} · {formatFileSize(file.size)}
           </li>
         ))}
       </ul>
