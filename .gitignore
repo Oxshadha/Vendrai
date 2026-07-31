@@ -14,25 +14,15 @@ Thumbs.db
 
 # Project-specific ignored documents
 Proposal/*
-!Proposal/*.pdf
 Project Plan/
 Database Schema/
 
 # Ignore local markdown notes except maintained project documentation
 *.md
 !README.md
-!AUDIT.md
-!CURRENT_STATUS.md
-!MASTER_TODO.md
-!LOG.md
-!RUN_PROJECT.md
-!AGENTS.md
 !docs/
-!docs/backup-restore-runbook.md
-!docs/competition/
-!plans/
-!plans/*.md
-!docs/competition/*.md
+!docs/*.md
+!apps/web/README.md
 
 # Node/Python specific ignores
 node_modules/
