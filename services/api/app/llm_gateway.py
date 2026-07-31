@@ -29,6 +29,34 @@ FORBIDDEN_PAYLOAD_KEYS = {
 }
 ALLOWED_CLASSIFICATIONS = {"SYNTHETIC", "TOKENIZED"}
 
+# Closed enum values the agent constructs from its own source -- never data
+# read out of a document, so they cannot carry PII.
+#
+# They have to be exempted explicitly because a SWIFT/BIC code is, by regex
+# alone, indistinguishable from any eight-character uppercase token. That
+# matched "BLOCKING" and "OPTIONAL" in every capability's `failure_policy`,
+# so validate_minimized_payload rejected every investigation plan before it
+# reached the provider. The agent then crashed on each retry, cases never
+# left SPECIALIST_ANALYSIS, and no evidence was ever written for them.
+# "APPROVED", "REJECTED" and "APPROVAL" match the same way and would have
+# broken the human-resume path identically.
+#
+# Exempting exact values rather than loosening the pattern keeps the guard
+# intact: anything that is not one of these constants is still scanned, so a
+# real bank identifier is still caught. tests/test_llm_gateway.py asserts
+# this set stays in sync with the Literal types it mirrors.
+SYSTEM_ENUM_VALUES = frozenset({
+    # agents/planning.py
+    "OPTIONAL", "RETRYABLE", "BLOCKING", "supplier", "invoice",
+    # agents/contracts.py
+    "SUCCESS", "PARTIAL", "BLOCKED", "FAILED",
+    "LOW", "MEDIUM", "HIGH",
+    "APPROVED", "REJECTED", "MORE_INFO", "ESCALATED", "CLARIFIED",
+    "SUCCEEDED",
+    # agents/workflow.py
+    "CLARIFICATION", "APPROVAL",
+})
+
 
 class LLMProviderError(RuntimeError):
     def __init__(
@@ -79,6 +107,8 @@ def _walk_payload(value, path: tuple[str, ...] = ()) -> list[str]:
     elif isinstance(value, (bytes, bytearray)):
         violations.append(".".join(path) or "<root-bytes>")
     elif isinstance(value, str):
+        if value in SYSTEM_ENUM_VALUES:
+            return violations
         entities = sensitive_entity_types(value)
         if entities:
             violations.append(
