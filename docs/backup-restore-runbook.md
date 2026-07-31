@@ -1,6 +1,6 @@
 # PostgreSQL backup and restore runbook
 
-NeuroX archives WAL continuously to the private `neurox-backups` bucket with
+Vendrai archives WAL continuously to the private `neurox-backups` bucket with
 pgBackRest when the operations overlay is enabled. The functional product
 profile intentionally starts without continuous backup so workflow
 development is not blocked by optional operational infrastructure. The
@@ -32,7 +32,7 @@ at the active `postgres_data` volume.
 
 1. Record the target backup label and desired point-in-time.
 2. Stop application writers and create a new empty PostgreSQL volume.
-3. Start the NeuroX PostgreSQL image against only that new volume with the same
+3. Start the Vendrai PostgreSQL image against only that new volume with the same
    backup repository secrets.
 4. Run `pgbackrest --stanza=neurox --delta --type=time
    --target="<UTC timestamp>" restore` inside the isolated database container.

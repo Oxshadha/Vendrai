@@ -1,4 +1,4 @@
-# NeuroX web application
+# Vendrai web application
 
 This Next.js application is the operational UI for supplier onboarding and
 invoice-exception resolution. It uses the real FastAPI contract, TanStack Query,

@@ -1,6 +1,6 @@
-# Run and test NeuroX on another machine
+# Run and test Vendrai on another machine
 
-This guide is for a trusted tester running NeuroX on macOS, Linux, or Windows.
+This guide is for a trusted tester running Vendrai on macOS, Linux, or Windows.
 It uses the checked-in synthetic document corpus. Do not use real supplier,
 bank, tax, employee, or invoice data in a development environment.
 
@@ -39,7 +39,7 @@ intended branch before sharing its name.
 Alternatively, after committing the intended revision, create a clean archive:
 
 ```bash
-git archive --format=zip --output=NeuroX-test.zip HEAD
+git archive --format=zip --output=Vendrai-test.zip HEAD
 ```
 
 `git archive` does not include `.env`, virtual environments, Docker volumes, or
@@ -107,7 +107,7 @@ Install Git, OpenSSL, Docker Engine, and the Docker Compose v2 plugin using the
 instructions for the Linux distribution. Add the tester to the Docker group
 only if that is consistent with the machine's security policy.
 
-Verify that Docker works without changing NeuroX:
+Verify that Docker works without changing Vendrai:
 
 ```bash
 docker run --rm hello-world
@@ -142,7 +142,7 @@ sudo apt install -y git openssl ca-certificates curl
 ```
 
 Clone the repository inside the WSL filesystem, for example under
-`~/projects/NeuroX`, rather than under `/mnt/c`. Linux filesystem paths provide
+`~/projects/Vendrai`, rather than under `/mnt/c`. Linux filesystem paths provide
 better Docker bind-mount performance and avoid common permission problems.
 
 All commands below are then run inside the Ubuntu terminal. If scripts lost
@@ -157,8 +157,8 @@ chmod +x scripts/*.sh infra/keycloak/*.sh infra/postgres/*.sh
 Clone the exact branch shared by the owner:
 
 ```bash
-git clone --branch BRANCH_NAME --single-branch REPOSITORY_URL NeuroX
-cd NeuroX
+git clone --branch BRANCH_NAME --single-branch REPOSITORY_URL Vendrai
+cd Vendrai
 git rev-parse HEAD
 git status --short
 ```
@@ -166,7 +166,7 @@ git status --short
 Replace `BRANCH_NAME` and `REPOSITORY_URL` with the real values. The final
 `git status` should be empty.
 
-For an archive, extract it, open a Bash shell in the extracted `NeuroX`
+For an archive, extract it, open a Bash shell in the extracted `Vendrai`
 directory, and continue below.
 
 ## 6. Create the local environment
@@ -387,7 +387,7 @@ not bypass it to make the smoke test green.
    the resulting automatic, review, or fail-closed verification path.
 
 A complete ERP-confirmed journey requires the policy, sanctions, role, approval,
-and OPA prerequisites listed in `MASTER_TODO.md`. This smoke test proves that
+and OPA prerequisites to be configured. This smoke test proves that
 the submitted evidence travels through the running stack and that missing
 control data remains visible.
 
@@ -529,7 +529,7 @@ docker compose ps --all
 
 ### Destructive clean reset
 
-The following command permanently deletes the local NeuroX PostgreSQL data,
+The following command permanently deletes the local Vendrai PostgreSQL data,
 documents, queues, model data, and other Docker volumes for this Compose
 project. Use it only when the tester intentionally wants a completely fresh
 synthetic environment:
@@ -568,7 +568,7 @@ conflicting port rather than leaving you to find it:
 ./scripts/stack.sh preflight
 ```
 
-NeuroX binds localhost ports `3000`, `8000`, `8080`, `8025`, `9000`, and
+Vendrai binds localhost ports `3000`, `8000`, `8080`, `8025`, `9000`, and
 `9001`. Stop or reconfigure the conflicting application deliberately.
 
 ### ClamAV remains unhealthy
@@ -644,6 +644,6 @@ No secrets or real business data attached: YES/NO
 ```
 
 Passing the smoke steps on another machine is valuable evidence, but it does
-not by itself mark NeuroX production-ready. The remaining security, chaos,
-load, backup/restore, complete browser, and 100-case numerical gates remain in
-`MASTER_TODO.md`.
+not by itself mark Vendrai production-ready. The remaining security, chaos,
+load, backup/restore, complete browser, and 100-case numerical gates still
+need to pass.

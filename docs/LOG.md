@@ -1,8 +1,6 @@
-# NeuroX build log
+# Vendrai build log
 
-This is the concise chronological log requested by the project owner. Detailed
-acceptance evidence remains in [`CURRENT_STATUS.md`](./CURRENT_STATUS.md), and
-unfinished gates remain in [`MASTER_TODO.md`](./MASTER_TODO.md).
+Concise chronological log of the project's build milestones.
 
 ## 2026-07-27 — CI migration and container-image recovery
 
@@ -86,7 +84,7 @@ unfinished gates remain in [`MASTER_TODO.md`](./MASTER_TODO.md).
 ### Current workstation constraint
 
 - Host free space was rechecked at approximately 8.9 GB.
-- No NeuroX OCR or retrieval image is cached. Building the complete local
+- No Vendrai OCR or retrieval image is cached. Building the complete local
   product would risk filling the system disk, so the heavy Docker build was
   not started.
 - The full OCR stack remains required in the product profile. Nothing was
@@ -121,7 +119,7 @@ unfinished gates remain in [`MASTER_TODO.md`](./MASTER_TODO.md).
 - Existing Docker images: approximately 13.1 GB.
 - Existing Docker volumes: approximately 4.0 GB.
 - Free host space observed: approximately 7.1 GB.
-- NeuroX Compose services are not currently running.
+- Vendrai Compose services are not currently running.
 - Before automated setup, the root `.env` had the Gemini key but lacked the
   required internal service secrets. The bootstrap has now run successfully:
   all required Compose values are present, the Gemini key was preserved, and
