@@ -76,3 +76,59 @@ def test_human_narratives_are_masked_and_payload_edits_rejected():
             evidence_hash="a" * 64,
             edited_payload={"bank_account": "001234567890"},
         )
+
+
+# --- Detector precision -------------------------------------------------
+#
+# The patterns were matching the agent's own output: any eight-letter
+# uppercase word looked like a BIC, any ISO date looked like a phone number,
+# and the TAX_ID/BANK_ACCOUNT captures accepted plain English, so a claim
+# merely *naming* a field was treated as carrying its value. Every
+# investigation payload was rejected and cases stalled mid-analysis.
+#
+# These two tests are a pair and must stay that way: the first proves the
+# guard still catches real values, the second proves it no longer fires on
+# text that contains none. Loosening a detector is only safe with both.
+
+import pytest
+
+from app.domain.pii import sensitive_entity_types
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("DEUTDEFF500", "SWIFT_CODE"),
+        ("SWIFT: DEUTDEFF", "SWIFT_CODE"),
+        ("BIC CODE CHASUS33", "SWIFT_CODE"),
+        ("Tax ID: GB123456789", "TAX_ID"),
+        ("VAT 987654321", "TAX_ID"),
+        ("Account number 12345678901", "BANK_ACCOUNT"),
+        ("A/C 4455667788", "BANK_ACCOUNT"),
+        ("+44 20 7946 0958", "PHONE_NUMBER"),
+        ("GB29NWBK60161331926819", "IBAN"),
+        ("a.person@example.com", "EMAIL_ADDRESS"),
+    ],
+)
+def test_real_sensitive_values_are_still_detected(value, expected):
+    assert expected in sensitive_entity_types(value)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "COMPLETE",            # eight-letter word, not a BIC
+        "VERIFIED",
+        "SCREENED",
+        "BLOCKING",            # capability failure_policy
+        "OPTIONAL",
+        "APPROVED",            # approval decision
+        "2026-06-01",          # ISO date, not a phone number
+        "PROC-001 clause 3.1 effective 2026-06-01",
+        "Tax ID verified against the national registry",
+        "Account number matches the supplier master record",
+        "Bank account confirmed by two documents",
+    ],
+)
+def test_text_carrying_no_sensitive_value_is_not_flagged(value):
+    assert sensitive_entity_types(value) == []

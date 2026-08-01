@@ -23,29 +23,53 @@ PATTERNS: dict[str, tuple[re.Pattern[str], float]] = {
         re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.I),
         0.95,
     ),
+    # The ISO date exclusion is load-bearing: "2026-06-01" is a digit-and-dash
+    # run of exactly the shape this matches, so every policy citation carrying
+    # an effective date read as a phone number and blocked the agent payload.
     "PHONE_NUMBER": (
-        re.compile(r"(?<!\w)(?:\+?\d[\d ()-]{7,}\d)(?!\w)"),
+        re.compile(r"(?<!\w)(?!\d{4}-\d{2}-\d{2}(?!\d))(?:\+?\d[\d ()-]{7,}\d)(?!\w)"),
         0.75,
     ),
     "IBAN": (
         re.compile(r"\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b", re.I),
         0.95,
     ),
+    # A bare eight-character uppercase token is not evidence of a BIC -- it is
+    # also every eight-letter English word, so "COMPLETE", "VERIFIED" and
+    # "SCREENED" were all reported as bank identifiers and rejected the agent's
+    # own status fields.
+    #
+    # Require corroboration instead: either a SWIFT/BIC keyword, or a digit in
+    # the token (as in DEUTDEFF500). The residual gap -- a bare all-alphabetic
+    # BIC with no keyword nearby -- is covered by "swift_code" in
+    # FORBIDDEN_PAYLOAD_KEYS, which blocks by field name and does not depend on
+    # recognising the value at all.
     "SWIFT_CODE": (
-        re.compile(r"\b[A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\b"),
+        re.compile(
+            r"(?i)\b(?:SWIFT|BIC)(?:\s+CODE)?[\s:#-]*"
+            r"[A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\b"
+            r"|\b(?=[A-Z0-9]{8,11}\b)(?=[A-Z0-9]*\d)"
+            r"[A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\b"
+        ),
         0.9,
     ),
+    # The `(?=[A-Z0-9 -]*\d)` lookaheads require the captured identifier to
+    # contain a digit. Without them the capture accepted plain English, so the
+    # claim "Tax ID verified against the registry" was reported as a tax ID and
+    # "Account number matches the master record" as a bank account -- sentences
+    # naming a field, carrying no value at all. Every real tax ID and account
+    # number contains at least one digit, so detection is unaffected.
     "TAX_ID": (
         re.compile(
             r"(?i)\b(?:TIN|VAT|TAX(?:PAYER)?(?:\s+ID)?)"
-            r"[\s:#-]*([A-Z0-9][A-Z0-9 -]{5,24})\b"
+            r"[\s:#-]*((?=[A-Z0-9 -]*\d)[A-Z0-9][A-Z0-9 -]{5,24})\b"
         ),
         0.85,
     ),
     "BANK_ACCOUNT": (
         re.compile(
             r"(?i)\b(?:ACCOUNT|A/C)(?:\s+(?:NO|NUMBER))?"
-            r"[\s:#-]*([A-Z0-9][A-Z0-9 -]{7,32})\b"
+            r"[\s:#-]*((?=[A-Z0-9 -]*\d)[A-Z0-9][A-Z0-9 -]{7,32})\b"
         ),
         0.85,
     ),
